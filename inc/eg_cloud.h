@@ -8,7 +8,7 @@ extern "C" {
 typedef unsigned char(*EG_DEV_MSG_CB)(unsigned char *,int);
 void EG_cloud_msg_process(EG_DEV_MSG_CB f_dev_callback);
 int EG_device_snap_shot(char *out_snap, unsigned int out_len);
-int EG_start();
+int EG_start(const char* uuid,const char*macaddr);
 
 
 #ifdef __cplusplus

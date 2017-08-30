@@ -217,8 +217,7 @@ void EG_msg_arrived(MessageData* m)
 
 static void EG_msg_queue_clear()
  {
- 	 int i;
- 
+ 	 int i=0;
  	 int packetCount = EG_queue_get_msgs_waiting(EG_msg_queue_get(EG_CLOUD_MSG_OUT));
 	 EG_P("clear Device2cloudQueue Count :[%d]\r\n",packetCount);
  	 for(i = 0; i < packetCount; i++) 
@@ -333,7 +332,7 @@ void EG_msg_recv(void* arg)
 			pCloud2WifiPacket=NULL;
 			f_cb = NULL;
 			commandID = 0;
-			EG_thread_sleep(EG_msec_to_ticks(50));
+			EG_thread_sleep(EG_msec_to_ticks(500));
 			
 	}
 
@@ -505,11 +504,26 @@ static uint8_t EG_connect_mqtt_server()
 		//EG_device_uuid_get(TopicUuid,len);
 		//EG_P("%s->uuid:%s,mac:%s\r\n",__FUNCTION__,TopicUuid,TopicMac);
 		if ((rc = MQTTSubscribe(&opts->client, (const char*)eg_get_dev_info_macaddr(), 2, EG_msg_arrived)) != 0)
-			EG_E("Unable to subscribe topic1.\r\n");
+			{
+				EG_E("Unable to subscribe topic1.\r\n");
+				EG_device_reboot(EG_DEVICE_OF_WIFI);
+			}
+			
 		if ((rc = MQTTSubscribe(&opts->client, (const char*)eg_get_dev_info_uuid(), 2, EG_msg_arrived)) != 0)
-			EG_E("Unable to subscribe topic2.\r\n");	
+			{
+				EG_E("Unable to subscribe topic2.\r\n");
+				
+				EG_device_reboot(EG_DEVICE_OF_WIFI);
+				
+			}
+			
 		if ((rc = MQTTSubscribe(&opts->client, STR_WIFI_MODULE_FOTATOPIC, 2, EG_msg_arrived)) != 0)
-			EG_E("Unable to subscribe topic2.\r\n");
+			{
+				EG_E("Unable to subscribe topic3.\r\n");
+				
+				EG_device_reboot(EG_DEVICE_OF_WIFI);
+				
+			}
 #endif
 	return MQTT_CONNECTED_SUCCESS;
 }
@@ -650,11 +664,12 @@ int EG_mqtt_start()
 
 
 
-int EG_service_init()
+int EG_service_init(const char* uuid,const char* macaddr)
 {
 		
 		int ret = 0 ;
-		
+		if(uuid == NULL||macaddr==NULL)
+			return EG_E_INVAL;
 		//1.create queue for cloud msg out:device2cloud
 		if(EG_msg_queue_create()!=0)
 		{
@@ -670,8 +685,8 @@ int EG_service_init()
 		EG_msg_cmd_register();
 
 		//3.init hardware
-		EG_device_init("POOvcN","112233445566");
-		
+		//EG_device_init("POOvcN","112233445566");
+		EG_device_init(uuid,macaddr);
 		//3.create event queue 
 		if(EG_event_init()!=0)
 		{
@@ -679,7 +694,8 @@ int EG_service_init()
 		}
 		else
 		{
-			EG_start_event_machine();
+			//EG_start_event_machine();
+			//EG_start_event_machine1();
 		}
 
 
@@ -692,7 +708,7 @@ int EG_service_init()
 
 int EG_mqtt_stop()
 {
-
+#if 0
 	/**/
 	MQTTDisconnect(&opts->client);
 
@@ -707,6 +723,22 @@ int EG_mqtt_stop()
 
 		opts->network.my_socket = -1;
 	}
+
+#endif	
+	MQTTDisconnect_v2(&opts->client);
+	if (MQTTSendThread_thread != 0) {
+		EG_thread_delete(&MQTTSendThread_thread);
+		MQTTSendThread_thread = 0;
+	}
+
+	if (MQTTReceiveThread_thread != 0) {
+		EG_thread_delete(&MQTTReceiveThread_thread);
+		MQTTReceiveThread_thread = 0;
+	}
+
+	MQTTClientDeinit(&opts->client);
+
+	NetworkDisconnect(&opts->network);
 	return 0;
 }
 

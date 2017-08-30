@@ -6,12 +6,13 @@ C_FILES  += 	$(EGLINK_SRC)/src/eg_cloud.c
 C_FILES  += 	$(EGLINK_SRC)/src/eg_mqtt.c
 C_FILES  += 	$(EGLINK_SRC)/src/eg_packet.c
 C_FILES  += 	$(EGLINK_SRC)/src/eg_list.c
-C_FILES  += 	$(EGLINK_SRC)/src/eg_smartlink.c
+#C_FILES  += 	$(EGLINK_SRC)/src/eg_smartlink.c
 C_FILES  += 	$(EGLINK_SRC)/src/eg_porting_layer.c
 C_FILES  += 	$(EGLINK_SRC)/src/eg_time.c
 C_FILES  += 	$(EGLINK_SRC)/src/eg_aes.c
 C_FILES  += 	$(EGLINK_SRC)/src/eg_hardware.c
 C_FILES  += 	$(EGLINK_SRC)/src/eg_event.c
+C_FILES  += 	$(EGLINK_SRC)/src/eg_udpbroadcast.c
 
 C_FILES      += $(EGLINK_SRC)/src/mqtt/eg_port_mqtt.c
 C_FILES      += $(EGLINK_SRC)/src/mqtt/MQTTClient.c

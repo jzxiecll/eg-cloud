@@ -300,12 +300,11 @@ static int cycle(Client* c, Timer* timer)
   }
   
   int kret = keepalive(c);
- // if (c->ping_outstanding && expired(&c->pingresp_timer)||(kret == -1))
-
-  if (c->ping_outstanding && expired(&c->pingresp_timer))
+  if (c->ping_outstanding && expired(&c->pingresp_timer)||(kret == -1))
+ // if (c->ping_outstanding && expired(&c->pingresp_timer))
   {
       //c->ping_outstanding = 0;
-	  c->ping_outstanding = 0;
+	  //c->ping_outstanding = 0;
       rc = CONNECTION_LOST;
   }
 
@@ -573,6 +572,13 @@ int MQTTPublish(Client* c, const char* topicName, MQTTMessage* message)
   return rc;
 }
 
+int MQTTDisconnect_v2(Client *c)
+{
+	MutexLock(&c->mutex);
+	c->isconnected = 0;
+	MutexUnlock(&c->mutex);
+	return MQTT_SUCCESS;
+}
 
 int MQTTDisconnect(Client* c)
 {  

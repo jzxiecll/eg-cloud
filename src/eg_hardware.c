@@ -6,6 +6,22 @@ DeviceInfo_t _g_devinfo, *_g_pdevinfo = &_g_devinfo;
 /********************************************************************************/
 /********************************************************************************/
 /********************************************************************************/
+int EG_wlan_get_ip_address(uint8_t* sIpaddr)
+	
+{
+	struct netif  *iface = netif_find("st2");
+#if LWIP_DHCP
+    if (dhcp_supplied_address(iface)) {
+        struct dhcp *d = iface->dhcp;
+        sprintf(sIpaddr,"%s", ip4addr_ntoa(&d->offered_ip_addr));
+    }
+    else 
+#endif
+    {
+        sprintf(sIpaddr,"%s", ip4addr_ntoa(&iface->ip_addr));
+    }
+	return EG_SUCCESS;	
+}
 
 int  EG_device_uuid_get(char *buf, unsigned int buf_sz)
 {
@@ -636,6 +652,12 @@ WIFIMODULE_DEVICEID_RSTAT eg_get_dev_info_wifistatus_deviceIDRequestStatus()
 	return _g_pdevinfo->wifiStatus.deviceIDRequestStatus;
 }
 
+WIFIMODULE_UDPBROADCAST_STATUS eg_get_dev_info_wifistatus_udpbroadcastStatus()
+{
+	return _g_pdevinfo->wifiStatus.isUdpBroadcastRunning;
+}
+
+
 void eg_set_dev_info_wifistatus_configStatus(WIFIMODULE_CONFIG_MODE stat)
 {
 
@@ -661,6 +683,12 @@ void eg_set_dev_info_wifistatus_deviceIDRequestStatus(WIFIMODULE_DEVICEID_RSTAT 
 {
 	_g_pdevinfo->wifiStatus.deviceIDRequestStatus= stat;
 }
+
+
+void eg_set_dev_info_wifistatus_udpbroadcastStatus(WIFIMODULE_UDPBROADCAST_STATUS stat)
+{
+	_g_pdevinfo->wifiStatus.isUdpBroadcastRunning = stat;
+}
 void EG_device_init(const char* uuid,const char* macaddr)
 {
 
@@ -671,3 +699,5 @@ void EG_device_init(const char* uuid,const char* macaddr)
 	memcpy(_g_pdevinfo->macaddr, macaddr, strlen(macaddr));
 
 }
+
+

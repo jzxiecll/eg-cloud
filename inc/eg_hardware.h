@@ -7,6 +7,10 @@ extern "C" {
 
 #include "eg_porting_layer.h"
 #include "eg_time.h"
+#include "inet.h"
+#include "dhcp.h"
+#include "stats.h"
+#include "netif.h"
 
 #include "wifi_api.h"
 
@@ -59,6 +63,13 @@ typedef enum {
 	WIFIMODULE_DEVICEID_SUCCESS,
 
 }WIFIMODULE_DEVICEID_RSTAT;
+
+typedef enum {
+
+	WIFIMODULE_UDPBROADCAST_NOT_RUNNING = 0x00,
+	WIFIMODULE_UDPBROADCAST_RUNNING,
+	WIFIMODULE_UDPBROADCAST_RUNNED,
+}WIFIMODULE_UDPBROADCAST_STATUS;
 
 
 typedef struct {
@@ -151,6 +162,7 @@ typedef struct {
 	WifiModuleStatus wifiStatus;
 }DeviceInfo_t;
 
+int EG_wlan_get_ip_address(uint8_t* sIpaddr);
 
 int EG_device_uuid_set(const char *json_in);
 int EG_device_uuid_get(char *buf, unsigned int buf_sz);
@@ -208,6 +220,8 @@ uint8_t eg_get_dev_info_wifistatus_workMode();
 WIFIMODULE_ROUTER_STATUS eg_get_dev_info_wifistatus_routerStatus();
 WIFIMODULE_CLOUD_SERVICE_STATUS eg_get_dev_info_wifistatus_cloudServiceStatus();
 WIFIMODULE_DEVICEID_RSTAT eg_get_dev_info_wifistatus_deviceIDRequestStatus();
+WIFIMODULE_UDPBROADCAST_STATUS eg_get_dev_info_wifistatus_udpbroadcastStatus();
+
 
 
 
@@ -218,10 +232,12 @@ void eg_set_dev_info_wifistatus_workMode(uint8_t stat);
 void eg_set_dev_info_wifistatus_routerStatus(WIFIMODULE_ROUTER_STATUS  stat);
 void eg_set_dev_info_wifistatus_cloudServiceStatus(WIFIMODULE_CLOUD_SERVICE_STATUS stat);
 void eg_set_dev_info_wifistatus_deviceIDRequestStatus(WIFIMODULE_DEVICEID_RSTAT stat);
+void eg_set_dev_info_wifistatus_udpbroadcastStatus(WIFIMODULE_UDPBROADCAST_STATUS stat);
 
 
 
 void EG_device_init(const char* uuid,const char* macaddr);
+
 
 
 #ifdef __cplusplus

@@ -52,7 +52,7 @@ typedef enum {
   
 }CONNECT_MECHANISM;
 
-int EG_service_init();
+int EG_service_init(const char* uuid,const char* macaddr);
 int EG_mqtt_start();
 int EG_mqtt_stop();
 

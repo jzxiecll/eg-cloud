@@ -320,10 +320,10 @@ int NetworkConnect(Network *n, char *addr,  int port)
 void NetworkDisconnect(Network* n)
 {
 
-	EJ_Printf("enter NetworkDisconnect\r\n");
+	EG_I("enter NetworkDisconnect\r\n");
 	if(!n)
 	{
-		EJ_Printf("NetworkDisconnect\r\n");
+		EG_I("NetworkDisconnect\r\n");
 		return;
 	}
 	shutdown(n->my_socket,SHUT_RDWR);

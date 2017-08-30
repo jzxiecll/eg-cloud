@@ -62,6 +62,9 @@ int MQTTPublish (Client*, const char*, MQTTMessage*);
 int MQTTSubscribe (Client*, const char*, enum QoS, messageHandler);
 int MQTTUnsubscribe (Client*, const char*);
 int MQTTDisconnect (Client*);
+int MQTTDisconnect_v2(Client *c);
+
+
 int MQTTYield (Client*, int);
 
 void setDefaultMessageHandler(Client*, messageHandler);

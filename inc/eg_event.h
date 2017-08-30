@@ -31,6 +31,7 @@ typedef enum
 	EJ_EVENT_timeSyncSem,
 	EJ_EVENT_routerConnectingSem,
 	EJ_EVENT_homeApNotConfiguredSem,
+	EJ_EVENT_udpBroadcastSem,
 	EJ_EVENT_egTestSem,
 	EJ_EVENT_NO
 }eg_event_t;
