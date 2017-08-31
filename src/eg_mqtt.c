@@ -32,7 +32,7 @@ uint8_t Process_RequestDeviceIDFromCloudResponseCB(EG_MSG_Packet *pPacket)
 				//memcpy(_g_pdevinfo->deviceid,pdid,6);
 			}else {
 				eg_set_dev_info_wifistatus_deviceIDRequestStatus(WIFIMODULE_DEVICEID_FAILED);
-				EG_E("request deviceID failed.\r\n");
+				EG_LOG_ERROR("request deviceID failed.\r\n");
 
 			}
 		}
@@ -72,7 +72,7 @@ int EG_device_check_deviceid()
 	uint8_t *p_did = eg_get_dev_info_deviceid();
 	
 	t_did = p_did[0]|p_did[1]|p_did[2]|p_did[3]|p_did[4]|p_did[5];
-	EG_I("Check device id is %d",t_did);
+	EG_LOG_INFO("Check device id is %d",t_did);
 	if(t_did==0)
 	{
 		EG_send_event_sem(EJ_EVENT_reApplyIDSem);
@@ -95,7 +95,7 @@ static void EG_PublishMQTTMessage(char *topicName, int qos, int retained, void *
 
 	if ((rc = MQTTPublish(&opts->client, topicName, &message)) != 0)
 	{
-		EG_E(" Unable to publish topic.\r\n");
+		EG_LOG_ERROR(" Unable to publish topic.\r\n");
 	}
 
 }
@@ -132,7 +132,7 @@ void EG_msg_pub(EG_MSG_Packet *pPacket, char *topicName)
 					EG_mem_free(payload);
 
 				}else {
-					EG_E("EG_mem_malloc failed.\r\n");
+					EG_LOG_ERROR("EG_mem_malloc failed.\r\n");
 				}
 
 			}
@@ -140,7 +140,7 @@ void EG_msg_pub(EG_MSG_Packet *pPacket, char *topicName)
 			EG_mem_free(buf);
 			
 		}else {
-			EG_E(" EG_mem_malloc failed.\r\n");
+			EG_LOG_ERROR(" EG_mem_malloc failed.\r\n");
 		}
 
 		
@@ -192,7 +192,7 @@ void EG_msg_arrived(MessageData* m)
 	 
 					 /* add this packet to cloud2deviceList. */
 					 if(eg_list_push(GetCloud2deviceList(), pPacket)!=1){
-						 EG_E("eg_list_push to Cloud2deviceList failed!\r\n"); 
+						 EG_LOG_ERROR("eg_list_push to Cloud2deviceList failed!\r\n"); 
 						 EG_mem_free(pPacket->data);
 						 EG_mem_free(pPacket);
 					 }
@@ -200,17 +200,17 @@ void EG_msg_arrived(MessageData* m)
 				 else {
 					 /* add this packet to cloud2wifiList. */
 					 if(eg_list_push(GetCloud2wifiList(), pPacket)!=1){
-						 EG_E("eg_list_push to Cloud2wifiList failed!\r\n");
+						 EG_LOG_ERROR("eg_list_push to Cloud2wifiList failed!\r\n");
 						 EG_mem_free(pPacket->data);
 						 EG_mem_free(pPacket);
 					 }
 				 }			 
 			 }else {
-				 EG_E("EG_mem_malloc wifi2CloudPacket->data failed.\r\n");
+				 EG_LOG_ERROR("EG_mem_malloc wifi2CloudPacket->data failed.\r\n");
 			 }
 			 
 		 }else{
-			 EG_E("EG_mem_malloc wifi2CloudPacket failed.\r\n");
+			 EG_LOG_ERROR("EG_mem_malloc wifi2CloudPacket failed.\r\n");
 		 }
 	 
 }
@@ -235,7 +235,7 @@ void EG_msg_send(void* arg)
 {
 		int rc = 0;
 		int dataLen = 0;
-		EG_D("EG_msg_send thread start.\r\n");
+		EG_DEBUG("EG_msg_send thread start.\r\n");
 		EG_msg_queue_clear();
 		for (;;)
 		{
@@ -266,29 +266,31 @@ void EG_msg_send(void* arg)
 						EG_cloud_msg_print(pWifi2CloudPacket,"[EG_cloud_msg_create]");
 						EG_msg_packet_free(pWifi2CloudPacket);
 					}else {
-						EG_E("EG_mem_malloc wifi2CloudPacket failed!\r\n"); 
+						EG_LOG_ERROR("EG_mem_malloc wifi2CloudPacket failed!\r\n"); 
 					}	
 #endif
 					EG_device_packet_free(pDevPacket);
 				}
 			}
-			EG_thread_sleep(EG_msec_to_ticks(30));
+			EG_thread_sleep(EG_msec_to_ticks(10));
 		}
 	
 		
 }
 
-static void EG_check_mqtt_connect_stat()
+static int EG_check_mqtt_connect_stat()
 {
 		int rc = 0;
 		if ((rc = MQTTYield(&opts->client, 200)) == FAILURE) {
-			EG_E(" MQTTYield failed.\r\n");
+			EG_LOG_ERROR(" MQTTYield failed.\r\n");
 		}
 		else if (rc == CONNECTION_LOST) {
 			EG_send_event_sem(EJ_EVENT_MQTTConnectionLostSem);
 			//EJ_PutEventSem(EJ_EVENT_MQTTConnectionLostSem);
-			EG_E(" MQTT connection lost.\r\n");
+			EG_LOG_ERROR(" MQTT connection lost.\r\n");
 		}
+
+		return rc;
 
 }
 
@@ -299,10 +301,15 @@ void EG_msg_recv(void* arg)
 	EG_MSG_Packet  *pCloud2WifiPacket=NULL;
 	EG_CLOUD_MSG_CB f_cb = NULL;
 	uint32_t commandID = 0;
+	int rc = 0;
 	for (;;)
 	{
 
-			EG_check_mqtt_connect_stat();	
+			//EG_check_mqtt_connect_stat();
+			if(CONNECTION_LOST==EG_check_mqtt_connect_stat())
+			{
+				break;
+			}
 			if(eg_list_pop(GetCloud2wifiList(), (void **)&pCloud2WifiPacket)==0x01)
 			{
 				commandID = (uint32_t)(pCloud2WifiPacket->dataType[1] << 8 | pCloud2WifiPacket->dataType[0]);
@@ -323,7 +330,7 @@ void EG_msg_recv(void* arg)
 
 				}else
 				{
-					EG_E(" NULL MQTTCommand %x Callback.\r\n", commandID);
+					EG_LOG_ERROR(" NULL MQTTCommand %x Callback.\r\n", commandID);
 				}
 			}
 
@@ -332,9 +339,13 @@ void EG_msg_recv(void* arg)
 			pCloud2WifiPacket=NULL;
 			f_cb = NULL;
 			commandID = 0;
-			EG_thread_sleep(EG_msec_to_ticks(500));
+			EG_thread_sleep(EG_msec_to_ticks(10));
 			
 	}
+
+	EG_thread_self_complete(NULL);
+	//EG_thread_Suspend(&MQTTReceiveThread_thread);
+	
 
 }
 
@@ -344,7 +355,7 @@ opts_struct *EG_msg_opts_of_connection_generate()
 
 	opts_struct *opt = (opts_struct *)EG_mem_malloc(sizeof(opts_struct));
 	if(!opt){
-		EG_P("GenerateMQTTConnectionerOpts failed!\r\n");
+		EG_LOG_ERROR("GenerateMQTTConnectionerOpts failed!\r\n");
 		return NULL;
 	}
 	memset(opt, 0, sizeof(opts_struct));
@@ -478,7 +489,7 @@ static uint8_t EG_connect_mqtt_server()
 	connectData.will.qos = 1;
 
 	if ((rc = MQTTConnect(&opts->client, &connectData)) != 0) {
-		EG_E("connnect MQTT server failed.\r\n");
+		EG_LOG_ERROR("connnect MQTT server failed.\r\n");
 		if (opts->network.my_socket) {
 			close(opts->network.my_socket);
 			opts->network.my_socket = -1;
@@ -487,7 +498,7 @@ static uint8_t EG_connect_mqtt_server()
 		return MQTT_CONNECTED_ERROR;
 	}
 	else
-		EG_I("connnect MQTT server success.\r\n");
+		EG_LOG_INFO("connnect MQTT server success.\r\n");
 #if 0
 	//if ((rc = MQTTSubscribe(&opts->client, opts->subTopic, 2, messageArrived)) != 0)
 	if ((rc = MQTTSubscribe(&opts->client, "F0AD4E0335E9", 2, EJ_messageArrived)) != 0)
@@ -505,23 +516,25 @@ static uint8_t EG_connect_mqtt_server()
 		//EG_P("%s->uuid:%s,mac:%s\r\n",__FUNCTION__,TopicUuid,TopicMac);
 		if ((rc = MQTTSubscribe(&opts->client, (const char*)eg_get_dev_info_macaddr(), 2, EG_msg_arrived)) != 0)
 			{
-				EG_E("Unable to subscribe topic1.\r\n");
-				EG_device_reboot(EG_DEVICE_OF_WIFI);
+				EG_LOG_ERROR("Unable to subscribe topic1.\r\n");
+				//EG_device_reboot(EG_DEVICE_OF_WIFI);
+			}else{
+				EG_LOG_INFO("able to subscribe topic1.\r\n");
 			}
 			
 		if ((rc = MQTTSubscribe(&opts->client, (const char*)eg_get_dev_info_uuid(), 2, EG_msg_arrived)) != 0)
 			{
-				EG_E("Unable to subscribe topic2.\r\n");
+				EG_LOG_ERROR("Unable to subscribe topic2.\r\n");
 				
-				EG_device_reboot(EG_DEVICE_OF_WIFI);
+				//EG_device_reboot(EG_DEVICE_OF_WIFI);
 				
 			}
 			
 		if ((rc = MQTTSubscribe(&opts->client, STR_WIFI_MODULE_FOTATOPIC, 2, EG_msg_arrived)) != 0)
 			{
-				EG_E("Unable to subscribe topic3.\r\n");
+				EG_LOG_ERROR("Unable to subscribe topic3.\r\n");
 				
-				EG_device_reboot(EG_DEVICE_OF_WIFI);
+				//EG_device_reboot(EG_DEVICE_OF_WIFI);
 				
 			}
 #endif
@@ -611,7 +624,7 @@ int EG_mqtt_start()
 		opts = EG_msg_opts_of_connection_generate();
 		if(!opts)
 		{
-			EG_P("Call EG_msg_opts_of_connection_generate failed \r\n");
+			EG_LOG_ERROR("Call EG_msg_opts_of_connection_generate failed \r\n");
 			return INIT_MQTT_CONNECTION_ERROR;
 		}
 		i = 1;
@@ -622,7 +635,7 @@ int EG_mqtt_start()
 
 	if (EG_user_connectserver() != MQTT_CONNECTED_SUCCESS) 
 	{
-		EG_P("Call EG_user_connectserver failed! \r\n");
+		EG_LOG_ERROR("Call EG_user_connectserver failed! \r\n");
 		return INIT_MQTT_CONNECTION_ERROR;
 	}
 	
@@ -633,7 +646,7 @@ int EG_mqtt_start()
 
 		if (ret!=EG_SUCCESS) 
 		{
-			EG_E(" Unable to create MQTTSendThread.\r\n");
+			EG_LOG_ERROR(" Unable to create MQTTSendThread.\r\n");
 			return INIT_MQTT_OS_THREAD_CREATE_ERROR;
 		}
 	}
@@ -649,7 +662,7 @@ int EG_mqtt_start()
 
 		if (ret!=EG_SUCCESS) 
 		{
-			EG_E(" Unable to create MQTTRecvThread.\r\n");
+			EG_LOG_ERROR(" Unable to create MQTTRecvThread.\r\n");
 			return INIT_MQTT_OS_THREAD_CREATE_ERROR;
 		}
 	}
@@ -658,7 +671,7 @@ int EG_mqtt_start()
 		EJ_task_Resume(MQTTReceiveThread_thread);
 	}
 	
-	EG_I("EG_service_start success \r\n");
+	EG_LOG_INFO("EG_service_start success \r\n");
 	return INIT_MQTT_SUCCESS;
 }
 
@@ -725,6 +738,8 @@ int EG_mqtt_stop()
 	}
 
 #endif	
+
+#if 0
 	MQTTDisconnect_v2(&opts->client);
 	if (MQTTSendThread_thread != 0) {
 		EG_thread_delete(&MQTTSendThread_thread);
@@ -737,8 +752,16 @@ int EG_mqtt_stop()
 	}
 
 	MQTTClientDeinit(&opts->client);
-
 	NetworkDisconnect(&opts->network);
 	return 0;
+#endif  
+	MQTTDisconnect(&opts->client);
+	EG_thread_Suspend(&MQTTSendThread_thread);
+	EG_thread_Suspend(&MQTTReceiveThread_thread);
+	MQTTClientDeinit(&opts->client);
+	NetworkDisconnect(&opts->network);
+	return 0;
+
+
 }
 

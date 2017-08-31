@@ -1084,22 +1084,22 @@ void EG_smartlink_process(unsigned char confgiMode)
 		switch(confgiMode)
 		{
 			case WIFICONFIG_AP_MODE:
-				EG_I("WIFICONFIG_AP_MODE !\r\n");
+				EG_LOG_INFO("WIFICONFIG_AP_MODE !\r\n");
 				break;
 			case WIFICONFIG_JOYLINK_MODE:
-				EG_I("WIFICONFIG_JOYLINK_MODE !\r\n");
+				EG_LOG_INFO("WIFICONFIG_JOYLINK_MODE !\r\n");
 				ejcloud_smart_connect(WIFICONFIG_JOYLINK_MODE);
 				break;
 			case WIFICONFIG_AIRKISS_MODE:	
-				EG_I("WIFICONFIG_AIRKISS_MODE !\r\n");
+				EG_LOG_INFO("WIFICONFIG_AIRKISS_MODE !\r\n");
 				ejcloud_smart_connect(WIFICONFIG_AIRKISS_MODE);
 				break;
 			case WIFICONFIG_ALI_MODE:	
-				EG_I("WIFICONFIG_ALI_MODE !\r\n");
+				EG_LOG_INFO("WIFICONFIG_ALI_MODE !\r\n");
 				alink_connect();
 				break;
 			default:
-				EG_I("default WIFIMODULE_EASYCONNECT_MODE!\r\n");
+				EG_LOG_INFO("default WIFIMODULE_EASYCONNECT_MODE!\r\n");
 				ejcloud_smart_connect(WIFICONFIG_EZCONNECT_MODE);
 				break;
 		}

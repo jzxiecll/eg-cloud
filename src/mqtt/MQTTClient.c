@@ -219,12 +219,13 @@ static  int keepalive(Client* c)
 		  {
 		      countdown_ms(&c->pingresp_timer, c->command_timeout_ms);
 			  c->ping_outstanding = 1;
-		      EG_D(" send ping request.\r\n");
+		      EG_DEBUG(" send ping request.\r\n");
 		      rc = MQTT_SUCCESS;
 		  }
 		  else 
 		  {
-		    EG_D("send ping failed.\r\n");
+		  	
+		    EG_DEBUG("send ping failed.\r\n");
 		    rc = FAILURE;
 		  }	
       }
@@ -265,11 +266,15 @@ static int cycle(Client* c, Timer* timer)
 		    if (len <= 0)
 		      rc = FAILURE;
 		    else {
-		
+#if 1		
 		      Timer acktimer;
 		      InitTimer(&acktimer);
 		      countdown_ms(&acktimer, 20);
-		      rc = sendPacket(c, len, &acktimer);
+			  rc = sendPacket(c, len, &acktimer);
+#else
+			  rc = sendPacket(c, len, timer);
+#endif	  
+		      
 		    }
 
 		    if (rc == FAILURE)
@@ -295,12 +300,12 @@ static int cycle(Client* c, Timer* timer)
       break;
     case PINGRESP:
       c->ping_outstanding = 0;
-	  // countdown_ms(&c->ping_timer, c->keepAliveInterval*1000);
+	  countdown_ms(&c->ping_timer, c->keepAliveInterval*1000);
       break;
   }
   
   int kret = keepalive(c);
-  if (c->ping_outstanding && expired(&c->pingresp_timer)||(kret == -1))
+  if ((c->ping_outstanding && expired(&c->pingresp_timer))||(kret == -1))
  // if (c->ping_outstanding && expired(&c->pingresp_timer))
   {
       //c->ping_outstanding = 0;
@@ -314,7 +319,7 @@ static int cycle(Client* c, Timer* timer)
   return rc;
 }
 
-int ret = MQTT_SUCCESS;
+
 
 int MQTTYield(Client* c, int timeout_ms)
 {
@@ -323,14 +328,13 @@ int MQTTYield(Client* c, int timeout_ms)
 
   InitTimer(&timer);    
   countdown_ms(&timer, timeout_ms);
-
-  ret = MQTT_SUCCESS;
+  int ret = MQTT_SUCCESS;
+  //ret = MQTT_SUCCESS;
 
   while (!expired(&timer))
   {
-
+#if 0
       MutexLock(&c->mutex);
-
       rc1 = cycle(c, &timer);
       if (rc1 == FAILURE)
       {
@@ -338,13 +342,20 @@ int MQTTYield(Client* c, int timeout_ms)
 	  }else if (rc1 == CONNECTION_LOST)
       {
 	    ret = CONNECTION_LOST;
-	  }else {
-			
-      }
-	  
+	  }  
       MutexUnlock(&c->mutex);
+#else
+	 MutexLock(&c->mutex);
+	 rc = cycle(c, &timer);
+	 MutexUnlock(&c->mutex);
+     if(rc==FAILURE||rc == CONNECTION_LOST)
+     {
+		break;	
+	 }
+
+#endif	  
   }        
-  return ret;
+  return rc;
 }
 
 
@@ -389,7 +400,7 @@ int MQTTConnect(Client* c, MQTTPacket_connectData* options)
   if ((rc = sendPacket(c, len, &connect_timer)) != MQTT_SUCCESS)
   {// send the connect packet
 
-		 EG_D("========================sendPacket %d\r\n\r\n",left_ms(&connect_timer));
+		 //EG_DEBUG("========================sendPacket %d\r\n\r\n",left_ms(&connect_timer));
    		 goto exit; // there was a problem
   }
   // this will be a blocking call, wait for the connack
@@ -403,7 +414,7 @@ int MQTTConnect(Client* c, MQTTPacket_connectData* options)
 		rc = FAILURE;
   }
   else{
-	  EG_D("***********************waitfor ACK timeout!\r\n \r\n");
+	  EG_DEBUG("***********************waitfor ACK timeout!\r\n \r\n");
 	  rc = FAILURE;
   }
    
@@ -533,7 +544,7 @@ int MQTTPublish(Client* c, const char* topicName, MQTTMessage* message)
     goto exit;
   if ((rc = sendPacket(c, len, &timer)) != MQTT_SUCCESS) 
   {  // send the subscribe packet   
-    EG_E("sendPacket failed.\r\n");
+    EG_LOG_ERROR("sendPacket failed.\r\n");
     goto exit; // there was a problem
   }
 
@@ -548,7 +559,7 @@ int MQTTPublish(Client* c, const char* topicName, MQTTMessage* message)
       }
       else 
 	  {
-			EG_E("wait for puback timeout.\r\n");
+			EG_LOG_ERROR("wait for puback timeout.\r\n");
 			rc = FAILURE;
       }
   }

@@ -309,16 +309,27 @@ int EG_thread_delete(eg_thread_t *thandle)
  return EG_SUCCESS;
 }
 
+void EG_thread_self_complete(eg_thread_t *thandle)
+{
+	/* Suspend self until someone calls delete. This is required because in
+	 * freeRTOS, main functions of a thread cannot return.
+	 */
+	if (thandle != NULL) {		
+		vTaskSuspend(*thandle);
+	} else {
+		vTaskSuspend(NULL);
+	}
+	/*
+	 * We do not want this function to return ever.
+	 */
+	while (1)
+		EG_thread_sleep(EG_msec_to_ticks(60000));
+}
 
 void EJ_task_Resume(eg_thread_t xTaskToResume)
 {
  	vTaskResume(xTaskToResume);
 }
-
-
-
-
-
 
 /*
 *

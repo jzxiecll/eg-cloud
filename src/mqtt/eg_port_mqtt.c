@@ -216,9 +216,6 @@ static void ej_mqtt_disconnect(Network* n)
 int NetworkConnect(Network *n, char *addr,  int port)
 {
 #if 1
-
-
-
     int type = SOCK_STREAM;
     struct sockaddr_in address;
     int rc = -1;
@@ -262,6 +259,7 @@ int NetworkConnect(Network *n, char *addr,  int port)
 
     /* create client socket */
     if (rc == 0) {
+		int opval = 1;
         n->my_socket = socket(family, type, 0);
         if (n->my_socket < 0) {
             MQTT_DBG("mqtt socket create fail");
@@ -275,6 +273,8 @@ int NetworkConnect(Network *n, char *addr,  int port)
             MQTT_DBG("mqtt socket connect fail:rc=%d,socket = %d", rc, n->my_socket);
             return -2;
         }
+		
+		//setsockopt(n->my_socket ,IPPROTO_TCP, TCP_NODELAY, &opval, sizeof(opval));
     }
 
     return rc;
@@ -320,10 +320,10 @@ int NetworkConnect(Network *n, char *addr,  int port)
 void NetworkDisconnect(Network* n)
 {
 
-	EG_I("enter NetworkDisconnect\r\n");
+	EG_LOG_INFO("enter NetworkDisconnect\r\n");
 	if(!n)
 	{
-		EG_I("NetworkDisconnect\r\n");
+		EG_LOG_INFO("NetworkDisconnect\r\n");
 		return;
 	}
 	shutdown(n->my_socket,SHUT_RDWR);
@@ -335,7 +335,7 @@ void NetworkDisconnect(Network* n)
 
 void NewNetwork(Network* n)
 {
-	n->my_socket = 0;
+	n->my_socket = -1;
 	n->mqttread = ej_mqtt_read;
 	n->mqttwrite = ej_mqtt_write;
 	n->disconnect = ej_mqtt_disconnect;

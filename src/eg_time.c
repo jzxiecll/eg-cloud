@@ -162,7 +162,7 @@ int EG_wlan_set_time(uint8_t *pTimeArray)
 	h_tm.tm_mon  = pTimeArray[5];
 	h_tm.tm_year = pTimeArray[6];
 	if (EG_time_set(&h_tm) == -1) {
-		EG_E("set time error.\r\n");
+		EG_LOG_ERROR("set time error.\r\n");
 		ret = 0x01;
 	}
 	return ret ;
@@ -174,7 +174,7 @@ int EG_wlan_get_time(uint8_t *pTimeArray)
 	int ret = 0 ;
 	struct eg_tm h_tm;
 	if (EG_time_get(&h_tm) == -1) {
-		EG_E("get time error.\r\n");
+		EG_LOG_ERROR("get time error.\r\n");
 		ret = 0x01;
 	}
 	pTimeArray[0] = h_tm.tm_sec;

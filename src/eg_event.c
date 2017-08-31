@@ -11,12 +11,12 @@ int  EG_event_init()
 	if(egEventQueue != NULL){		
 		if (EG_queue_create(egEventQueue, "egEventQueue", sizeof(void *) , &egEventQueueData) != EG_SUCCESS) {	
 		  ret = EG_FAIL;	
-		  EG_E("EG_EventManagerInit failed.\r\n");
+		  EG_LOG_ERROR("EG_EventManagerInit failed.\r\n");
 		}else{
-		  EG_D("EG_EventManagerInit success.\r\n");
+		  EG_DEBUG("EG_EventManagerInit success.\r\n");
 		}
 	}else{
-		EG_D("EG_EventManagerInit failed for malloc.\r\n");
+		EG_DEBUG("EG_EventManagerInit failed for malloc.\r\n");
 		ret = EG_FAIL;
 	}
 	return ret;
@@ -29,7 +29,7 @@ int  EG_send_event_sem(eg_event_t EventItem)
 	int ret = 0 ;
 	uint8_t msg = EventItem ; 
 	ret = EG_queue_send(egEventQueue, &msg, EG_msec_to_ticks(1));	
-	EG_D("EG_send_event_sem is %d ret=%d\r\n",msg,ret);		
+	EG_DEBUG("EG_send_event_sem is %d ret=%d\r\n",msg,ret);		
 	return  ret;	
 }
 

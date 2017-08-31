@@ -48,7 +48,7 @@ int  EG_device_uuid_set(const char *json_in)
         strlen(json_in));
 	if(status!=NVDM_STATUS_OK)
 	{
-		EG_E("nvdm_write_data_item uuid failed");
+		EG_LOG_ERROR("nvdm_write_data_item uuid failed");
 	}
    	
     return (NVDM_STATUS_OK == status) ? 0 : 1;
@@ -349,7 +349,7 @@ int EG_device_time_set(uint8_t *pTimeArray)
 	h_tm.tm_mon  = pTimeArray[5];
 	h_tm.tm_year = pTimeArray[6];
 	if (EG_time_set(&h_tm) == -1) {
-		EG_E(" set time error.\r\n");
+		EG_LOG_ERROR(" set time error.\r\n");
 		ret = 0x01;
 	}
 	return ret ;
@@ -361,7 +361,7 @@ int EG_device_time_get(uint8_t *pTimeArray)
 	int ret = 0 ;
 	struct eg_tm h_tm;
 	if (EG_time_get(&h_tm) == -1) {
-		EG_E(" get time error.\r\n");
+		EG_LOG_ERROR(" get time error.\r\n");
 		ret = 0x01;
 	}
 	pTimeArray[0] = h_tm.tm_sec;
@@ -398,7 +398,7 @@ int EG_device_register_attr_cb(const char *name, E_EG_DEV_ATTR_GET_CB attr_get_c
         return -1;
     }
     int ret = -1;
-    EG_D("regster %s", name);
+    EG_DEBUG("regster %s", name);
     if(!strcmp(name, EG_ATTR_MACADDR)){
        _g_pam->macaddr.get = attr_get_cb; 
        _g_pam->macaddr.set = attr_set_cb; 
@@ -431,7 +431,7 @@ int EG_device_register_attr_cb(const char *name, E_EG_DEV_ATTR_GET_CB attr_get_c
        ret = 0;
     } 
 
-    EG_D("regster %s:ret:%d", name, ret);
+    EG_DEBUG("regster %s:ret:%d", name, ret);
     return ret;
 }
 
@@ -449,72 +449,72 @@ static int  EG_device_get_info(DeviceInfo_t *p_devParma)
 	if(_g_pam->uuid.get){
         bzero(buff, sizeof(buff));
         if(!_g_pam->uuid.get(buff, sizeof(buff))){
-            EG_D("-->uuid:%s\n", buff);
+            EG_DEBUG("-->uuid:%s\n", buff);
             memcpy(p_devParma->uuid, buff,strlen(buff));
         }else{
-            EG_E("get uuid error");
+            EG_LOG_ERROR("get uuid error");
         }
     }
 
 	if(_g_pam->deviceid.get){
         bzero(buff, sizeof(buff));
         if(!_g_pam->deviceid.get(buff, sizeof(buff))){
-            EG_D("-->deviceid:%s\n", buff);
+            EG_DEBUG("-->deviceid:%s\n", buff);
 			char r_did[6]={0};
 			EG_str2hex(buff,r_did);
 			memcpy(p_devParma->deviceid, r_did,sizeof(r_did));
         }else{
-            EG_E("get deviceid error");
+            EG_LOG_ERROR("get deviceid error");
         }
     }
 
 	if(_g_pam->macaddr.get){
         bzero(buff, sizeof(buff));
         if(!_g_pam->macaddr.get(buff, sizeof(buff))){
-            EG_D("-->macaddr:%s\n", buff);
+            EG_DEBUG("-->macaddr:%s\n", buff);
             memcpy(p_devParma->macaddr, buff,strlen(buff));
         }else{
-            EG_E("get macaddr error");
+            EG_LOG_ERROR("get macaddr error");
         }
     }
 
 	if(_g_pam->configmode.get){
         bzero(buff, sizeof(buff));
         if(!_g_pam->configmode.get(buff, sizeof(buff))){
-            EG_D("-->configmode:%s\n", buff);
+            EG_DEBUG("-->configmode:%s\n", buff);
             memcpy(p_devParma->configmode, buff,strlen(buff));
         }else{
-            EG_E("get configmode error");
+            EG_LOG_ERROR("get configmode error");
         }
     }
 
 	if(_g_pam->serveraddr.get){
         bzero(buff, sizeof(buff));
         if(!_g_pam->serveraddr.get(buff, sizeof(buff))){
-            EG_D("-->serveraddr:%s\n", buff);
+            EG_DEBUG("-->serveraddr:%s\n", buff);
             memcpy(p_devParma->serveraddr, buff,strlen(buff));
         }else{
-            EG_E("get serveraddr error");
+            EG_LOG_ERROR("get serveraddr error");
         }
     }
 
 	if(_g_pam->serverport.get){
         bzero(buff, sizeof(buff));
         if(!_g_pam->serverport.get(buff, sizeof(buff))){
-            EG_D("-->serverport:%s\n", buff);
+            EG_DEBUG("-->serverport:%s\n", buff);
             memcpy(p_devParma->serverport, buff,strlen(buff));
         }else{
-            EG_E("get serverport error");
+            EG_LOG_ERROR("get serverport error");
         }
     }
 
 	if(_g_pam->serverdomain.get){
         bzero(buff, sizeof(buff));
         if(!_g_pam->serverdomain.get(buff, sizeof(buff))){
-            EG_D("-->serverdomain:%s\n", buff);
+            EG_DEBUG("-->serverdomain:%s\n", buff);
             memcpy(p_devParma->serverdomain, buff,strlen(buff));
         }else{
-            EG_E("get serverdomain error");
+            EG_LOG_ERROR("get serverdomain error");
         }
     }
 
@@ -528,7 +528,7 @@ static void EG_wait_network_up(void)
 	uint8_t link_status = 0;
  	struct netif *sta_if = NULL;
 
- 	EG_I("%s : start\n", __FUNCTION__);
+ 	EG_LOG_INFO("%s : start\n", __FUNCTION__);
 
 	 //check wifi link
 	 while(!link_status){
@@ -556,7 +556,7 @@ static void EG_wait_network_up(void)
 		 EG_thread_sleep(1000);
 	 }
 
-	 EG_I("%s : end\n", __FUNCTION__);
+	 EG_LOG_INFO("%s : end\n", __FUNCTION__);
 
 
 }

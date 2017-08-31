@@ -1,7 +1,11 @@
 #ifndef __EG_LOG_H__
 #define __EG_LOG_H__
 
-#include "eg_porting_layer.h"
+//#include "eg_porting_layer.h"
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdarg.h>
 
 
 #ifdef __cplusplus
@@ -30,62 +34,66 @@ extern "C"
 #define Purple  0;35
 #define Cyan    0;36
 
-#define EG_F(format, ...) \
+void EG_HEX(char *buf,int len);
+
+
+#define EG_LOG_FATAL(format, ...) \
     do{\
         if(EG_LOG_LEVEL >= EG_LOG_LEVEL_FATAL){\
-            log_printf("\033[0;31m[FATAL][%s][%s][%d]\n" format "\r\n", __FILE__, __FUNCTION__, __LINE__, ##__VA_ARGS__);\
+            log_printf("\033[0;31m[EG_FATAL][%s][%s][%d]\n" format "\r\n", __FILE__, __FUNCTION__, __LINE__, ##__VA_ARGS__);\
             log_fflush(stdout);\
             log_printf("\033[0m"); \
         }\
     }while(0)
 
-#define EG_N(format, ...) \
+#define EG_LOG_NOTICE(format, ...) \
     do{\
         if(EG_LOG_LEVEL >= EG_LOG_LEVEL_NOTICE){\
-            log_printf("\033[0;36m[NOTICE][%s][%s][%d]\n" format "\r\n", __FILE__, __FUNCTION__, __LINE__, ##__VA_ARGS__);\
+            log_printf("\033[0;36m[EG_NOTICE][%s][%s][%d]\n" format "\r\n", __FILE__, __FUNCTION__, __LINE__, ##__VA_ARGS__);\
             log_fflush(stdout);\
             log_printf("\033[0m"); \
         }\
     }while(0)
 
-#define EG_I(format, ...) \
+#define EG_LOG_INFO(format, ...) \
     do{\
         if(EG_LOG_LEVEL >= EG_LOG_LEVEL_INFO){\
-            log_printf("\033[1;36m[INFO][%s][%s][%d]\n" format "\r\n", __FILE__, __FUNCTION__, __LINE__, ##__VA_ARGS__);\
+            log_printf("\033[1;36m[EG_INFO][%s][%s][%d]\n" format "\r\n", __FILE__, __FUNCTION__, __LINE__, ##__VA_ARGS__);\
             log_fflush(stdout);\
             log_printf("\033[0m"); \
         }\
     }while(0)
 
-#define EG_E(format, ...) \
+#define EG_LOG_ERROR(format, ...) \
     do{\
         if(EG_LOG_LEVEL >= EG_LOG_LEVEL_ERROR){\
-            log_printf("\033[0;31m[ERROR][%s][%s][%d]\n" format "\r\n", __FILE__, __FUNCTION__, __LINE__, ##__VA_ARGS__);\
+            log_printf("\033[0;31m[EG_ERROR][%s][%s][%d]\n" format "\r\n", __FILE__, __FUNCTION__, __LINE__, ##__VA_ARGS__);\
             log_fflush(stdout);\
             log_printf("\033[0m"); \
         }\
     }while(0)
 
-#define EG_W(format, ...) \
+#define EG_LOG_WARN(format, ...) \
     do{\
         if(EG_LOG_LEVEL >= EG_LOG_LEVEL_WARN){\
-            log_printf("\033[1;33m[WARN][%s][%s][%d]\n" format "\r\n", __FILE__, __FUNCTION__, __LINE__, ##__VA_ARGS__);\
+            log_printf("\033[1;33m[EG_WARN][%s][%s][%d]\n" format "\r\n", __FILE__, __FUNCTION__, __LINE__, ##__VA_ARGS__);\
             log_fflush(stdout);\
             log_printf("\033[0m"); \
         }\
     }while(0)
 
-#define EG_D(format, ...) \
+
+#define EG_DEBUG(format, ...) \
     do{\
         if(EG_LOG_LEVEL >= EG_LOG_LEVEL_DEBUG){\
-            log_printf("\033[1;32m[DEBUG][%s][%s][%d]\n" format "\r\n", __FILE__, __FUNCTION__, __LINE__, ##__VA_ARGS__);\
+            log_printf("\033[1;32m[EG_DEBUG][%s][%s][%d]\n" format "\r\n", __FILE__, __FUNCTION__, __LINE__, ##__VA_ARGS__);\
             log_fflush(stdout);\
             log_printf("\033[0m"); \
         }\
     }while(0)
 
 
-void EG_HEX(char *buf,int len);
+
 
 #ifdef __cplusplus
 }

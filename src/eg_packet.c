@@ -13,12 +13,12 @@ uint8_t EG_msg_queue_create()
 
   if (EG_queue_create(cloud2deviceQueue, "cloud2deviceQueue", sizeof(EG_DEV_Packet *) , &cloud2deviceQueueData) != EG_SUCCESS) {
     ret = 1;
-    EG_E(" EG_queue_create cloud2deviceQueue failed.\r\n");
+    EG_LOG_ERROR(" EG_queue_create cloud2deviceQueue failed.\r\n");
   }
 
   if (EG_queue_create(device2cloudQueue, "device2cloudQueue", sizeof(EG_MSG_Packet *), &device2cloudQueueData) != EG_SUCCESS) {
     ret = 1;
-    EG_E("EG_queue_create device2cloudQueue failed.\r\n");
+    EG_LOG_ERROR("EG_queue_create device2cloudQueue failed.\r\n");
   }
 
   return ret;
@@ -197,7 +197,7 @@ int EG_request_deviceid(uint8_t *d_mac, uint8_t *d_uuid)
 			memset(pPacket->signature, 0xA5, 16);
 			if (eg_list_push(GetWifi2cloudList(), pPacket) != 0x01)
 			{
-				EG_E("add packet to wifi2cloudlist failed.\r\n");
+				EG_LOG_ERROR("add packet to wifi2cloudlist failed.\r\n");
 				EG_msg_packet_free(pPacket);
 			}		
 		}else
