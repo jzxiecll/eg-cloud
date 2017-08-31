@@ -45,7 +45,7 @@ static int sendPacket(Client* c, int length, Timer* timer)
       rc = MQTT_SUCCESS;
   }
   else
-      rc = FAILURE;
+      rc = CONNECTION_LOST;
   return rc;
 }
 
@@ -201,7 +201,7 @@ static int deliverMessage(Client* c, MQTTString* topicName, MQTTMessage* message
 static  int keepalive(Client* c)
 {
   int rc = MQTT_SUCCESS;
-  if (c->keepAliveInterval == 0)
+  if (c->keepAliveInterval == 0||!c->isconnected)
   {
 	  rc = MQTT_SUCCESS;
 	  goto exit;
@@ -220,16 +220,14 @@ static  int keepalive(Client* c)
 		      countdown_ms(&c->pingresp_timer, c->command_timeout_ms);
 			  c->ping_outstanding = 1;
 		      EG_DEBUG(" send ping request.\r\n");
-		      rc = MQTT_SUCCESS;
+		      //rc = MQTT_SUCCESS;
 		  }
-		  else 
-		  {
-		  	
-		    EG_DEBUG("send ping failed.\r\n");
-		    rc = FAILURE;
-		  }	
+		  if (len > 0 && rc != MQTT_SUCCESS)
+          {
+            EG_LOG_ERROR("%s: %d failed to send ping request, rc = %d\n", __func__, __LINE__, rc);
+          }
       }
-      c->ping_outstanding = 1;
+      //c->ping_outstanding = 1;
     }
 exit:
   return rc;
@@ -252,10 +250,12 @@ static int cycle(Client* c, Timer* timer)
     case PUBLISH:
     {
 		MQTTString topicName;
-		MQTTMessage msg;
-		if (MQTTDeserialize_publish((unsigned char*)&msg.dup, (int*)&msg.qos, (unsigned char*)&msg.retained, (unsigned short*)&msg.id, &topicName,
+		MQTTMessage msg={0};
+		int intQoS;
+		if (MQTTDeserialize_publish((unsigned char*)&msg.dup, &intQoS, (unsigned char*)&msg.retained, (unsigned short*)&msg.id, &topicName,
 					    (unsigned char**)&msg.payload, (int*)&msg.payloadlen, c->readbuf, c->readbuf_size) != 1)
 		  	goto exit;
+		msg.qos = (enum QoS)intQoS;
 		deliverMessage(c, &topicName, &msg);
 		if (msg.qos != QOS0)
 		{
@@ -305,17 +305,21 @@ static int cycle(Client* c, Timer* timer)
   }
   
   int kret = keepalive(c);
-  if ((c->ping_outstanding && expired(&c->pingresp_timer))||(kret == -1))
+  if ((c->ping_outstanding && expired(&c->pingresp_timer)))
  // if (c->ping_outstanding && expired(&c->pingresp_timer))
   {
       //c->ping_outstanding = 0;
-	  //c->ping_outstanding = 0;
+	  c->ping_outstanding = 0;
       rc = CONNECTION_LOST;
   }
 
  exit:
-  if (rc == MQTT_SUCCESS)
-    rc = packet_type;
+ 	if(packet_type == 0)
+ 	{
+ 		rc = CONNECTION_LOST;
+ 	}
+  	else if (rc == MQTT_SUCCESS)
+    	rc = packet_type;
   return rc;
 }
 
@@ -323,38 +327,26 @@ static int cycle(Client* c, Timer* timer)
 
 int MQTTYield(Client* c, int timeout_ms)
 {
-  volatile int rc, rc1 = MQTT_SUCCESS;
+  int rc = MQTT_SUCCESS;
   Timer timer;
 
   InitTimer(&timer);    
   countdown_ms(&timer, timeout_ms);
-  int ret = MQTT_SUCCESS;
-  //ret = MQTT_SUCCESS;
+  if(!c->isconnected)
+  	return rc
 
-  while (!expired(&timer))
+  do 
   {
-#if 0
-      MutexLock(&c->mutex);
-      rc1 = cycle(c, &timer);
-      if (rc1 == FAILURE)
-      {
-	  	ret = FAILURE;
-	  }else if (rc1 == CONNECTION_LOST)
-      {
-	    ret = CONNECTION_LOST;
-	  }  
-      MutexUnlock(&c->mutex);
-#else
+
 	 MutexLock(&c->mutex);
 	 rc = cycle(c, &timer);
 	 MutexUnlock(&c->mutex);
-     if(rc==FAILURE||rc == CONNECTION_LOST)
+     if(rc!= MQTT_SUCCESS)
      {
 		break;	
-	 }
-
-#endif	  
-  }        
+	 }	  
+  }while(!expired(&timer));  
+  
   return rc;
 }
 
@@ -368,10 +360,22 @@ static int waitfor(Client* c, int packet_type, Timer* timer)
   {
     if (expired(timer)) 
 		break; // we timed out
+	rc = cycle(c, timer);
+	if (rc == CONNECTION_LOST)
+            break;
   }
-  while ((rc = cycle(c, timer)) != packet_type);  
+  while (rc!= packet_type);  
     
   return rc;
+}
+int MQTTisConnected(MQTTClient* c)
+{
+    int ret = 0;
+	MutexLock(&c->mutex);
+    if (c)
+        ret = c->isconnected;
+	MutexUnlock(&c->mutex);
+    return ret;
 }
 
 
@@ -407,15 +411,14 @@ int MQTTConnect(Client* c, MQTTPacket_connectData* options)
   if (waitfor(c, CONNACK, &connect_timer) == CONNACK)
   {
       unsigned char connack_rc = 255;
-      char sessionPresent = 0;
+      unsigned char sessionPresent = 0;
       if (MQTTDeserialize_connack((unsigned char*)&sessionPresent, &connack_rc, c->readbuf, c->readbuf_size) == 1)
 		rc = connack_rc;
       else
 		rc = FAILURE;
   }
   else{
-	  EG_DEBUG("***********************waitfor ACK timeout!\r\n \r\n");
-	  rc = FAILURE;
+	    rc = FAILURE;
   }
    
     
@@ -473,7 +476,7 @@ int MQTTSubscribe(Client* c, const char* topicFilter, enum QoS qos, messageHandl
       }
   }
   else 
-    rc = FAILURE;
+    rc = CONNECTION_LOST;
         
  exit:
 
@@ -492,12 +495,11 @@ int MQTTUnsubscribe(Client* c, const char* topicFilter)
 
   MutexLock(&c->mutex);
 
-  InitTimer(&timer);
-  countdown_ms(&timer, c->command_timeout_ms);
-    
   if (!c->isconnected)
     goto exit;
-    
+  InitTimer(&timer);
+  countdown_ms(&timer, c->command_timeout_ms);
+  
   if ((len = MQTTSerialize_unsubscribe(c->buf, c->buf_size, 0, getNextPacketId(c), 1, &topic)) <= 0)
     goto exit;
   if ((rc = sendPacket(c, len, &timer)) != MQTT_SUCCESS) // send the subscribe packet
@@ -510,7 +512,7 @@ int MQTTUnsubscribe(Client* c, const char* topicFilter)
 		rc = 0; 
   }
   else
-    	rc = FAILURE;
+    	rc = CONNECTION_LOST;
     
  exit:
 
@@ -529,11 +531,11 @@ int MQTTPublish(Client* c, const char* topicName, MQTTMessage* message)
 
   MutexLock(&c->mutex);
 
-  InitTimer(&timer);
-  countdown_ms(&timer, c->command_timeout_ms);
-    
+ 
   if (!c->isconnected)
     goto exit;
+  InitTimer(&timer);
+  countdown_ms(&timer, c->command_timeout_ms);
 
   if (message->qos == QOS1 || message->qos == QOS2)
     message->id = getNextPacketId(c);
@@ -544,7 +546,6 @@ int MQTTPublish(Client* c, const char* topicName, MQTTMessage* message)
     goto exit;
   if ((rc = sendPacket(c, len, &timer)) != MQTT_SUCCESS) 
   {  // send the subscribe packet   
-    EG_LOG_ERROR("sendPacket failed.\r\n");
     goto exit; // there was a problem
   }
 
@@ -560,7 +561,7 @@ int MQTTPublish(Client* c, const char* topicName, MQTTMessage* message)
       else 
 	  {
 			EG_LOG_ERROR("wait for puback timeout.\r\n");
-			rc = FAILURE;
+			rc = CONNECTION_LOST;
       }
   }
   else if (message->qos == QOS2)
@@ -573,7 +574,7 @@ int MQTTPublish(Client* c, const char* topicName, MQTTMessage* message)
 		    rc = FAILURE;
       }
       else
-			rc = FAILURE;
+			rc = CONNECTION_LOST;
   }
     
  exit:
