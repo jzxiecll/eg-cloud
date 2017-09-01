@@ -31,7 +31,7 @@ struct Network
 };
 
 
-int NetworkConnect(Network *n, char *addr,  int port);
+int NetworkConnect(Network *n, char *host,  int port);
 
 void NewNetwork(Network* n);
 

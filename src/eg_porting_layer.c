@@ -322,8 +322,8 @@ void EG_thread_self_complete(eg_thread_t *thandle)
 	/*
 	 * We do not want this function to return ever.
 	 */
-	while (1)
-		EG_thread_sleep(EG_msec_to_ticks(60000));
+	//while (1)
+		//EG_thread_sleep(EG_msec_to_ticks(60000));
 }
 
 void EJ_task_Resume(eg_thread_t xTaskToResume)

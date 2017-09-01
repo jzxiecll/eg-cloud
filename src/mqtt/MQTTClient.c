@@ -201,7 +201,7 @@ static int deliverMessage(Client* c, MQTTString* topicName, MQTTMessage* message
 static  int keepalive(Client* c)
 {
   int rc = MQTT_SUCCESS;
-  if (c->keepAliveInterval == 0||!c->isconnected)
+  if (c->keepAliveInterval == 0)
   {
 	  rc = MQTT_SUCCESS;
 	  goto exit;
@@ -333,7 +333,7 @@ int MQTTYield(Client* c, int timeout_ms)
   InitTimer(&timer);    
   countdown_ms(&timer, timeout_ms);
   if(!c->isconnected)
-  	return rc
+  	return CONNECTION_LOST;
 
   do 
   {
@@ -368,7 +368,7 @@ static int waitfor(Client* c, int packet_type, Timer* timer)
     
   return rc;
 }
-int MQTTisConnected(MQTTClient* c)
+int MQTTisConnected(Client* c)
 {
     int ret = 0;
 	MutexLock(&c->mutex);

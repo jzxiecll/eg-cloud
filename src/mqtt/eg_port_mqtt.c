@@ -213,9 +213,34 @@ static void ej_mqtt_disconnect(Network* n)
 }
 
 
-int NetworkConnect(Network *n, char *addr,  int port)
+int NetworkConnect(Network *n, char *host,  int port)
 {
 #if 1
+
+		struct sockaddr_in addr;
+		n->my_socket = socket(AF_INET, SOCK_STREAM, 0);
+
+		if (n->my_socket < 0) {
+			return -EG_FAIL;
+		}
+		memset(&addr, 0, sizeof(struct sockaddr_in));
+		addr.sin_family = AF_INET;
+		addr.sin_port = htons(port);
+		addr.sin_addr.s_addr = inet_addr(host);
+		memset(&(addr.sin_zero), '\0', 8);
+
+		if (connect(n->my_socket, (const struct sockaddr *)&addr, sizeof(addr)) == 0) 
+		{
+			return EG_SUCCESS;
+			
+		}else
+		{
+			close(n->my_socket); 
+			n->my_socket = -1;
+			return -EG_FAIL;
+		}
+
+#if 0
     int type = SOCK_STREAM;
     struct sockaddr_in address;
     int rc = -1;
@@ -279,7 +304,7 @@ int NetworkConnect(Network *n, char *addr,  int port)
 
     return rc;
 
-
+#endif
 
 
 
