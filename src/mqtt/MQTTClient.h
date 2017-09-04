@@ -18,10 +18,8 @@
 #define __MQTT_CLIENT_C_
 
 #include "MQTTPacket.h"
-#include "eg_port_mqtt.h"
-
-//#include "stdio.h"
-//#include "eg_porting_layer.h" //Platform specific implementation header file
+#include "stdio.h"
+#include "eg_port_mqtt.h" //Platform specific implementation header file
 
 #define MAX_PACKET_ID 65535
 #define MAX_MESSAGE_HANDLERS 5
@@ -62,9 +60,6 @@ int MQTTPublish (Client*, const char*, MQTTMessage*);
 int MQTTSubscribe (Client*, const char*, enum QoS, messageHandler);
 int MQTTUnsubscribe (Client*, const char*);
 int MQTTDisconnect (Client*);
-int MQTTDisconnect_v2(Client *c);
-
-
 int MQTTYield (Client*, int);
 
 void setDefaultMessageHandler(Client*, messageHandler);

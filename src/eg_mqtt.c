@@ -518,28 +518,24 @@ static uint8_t EG_connect_mqtt_server()
 		if ((rc = MQTTSubscribe(&opts->client, (const char*)eg_get_dev_info_macaddr(), 2, EG_msg_arrived)) != 0)
 			{
 				EG_LOG_ERROR("Unable to subscribe topic1.\r\n");
-				EG_thread_sleep(200);
 				//EG_device_reboot(EG_DEVICE_OF_WIFI);
 			}else{
 				EG_LOG_INFO("able to subscribe topic1.\r\n");
 			}
-			EG_thread_sleep(200);
+			
 		if ((rc = MQTTSubscribe(&opts->client, (const char*)eg_get_dev_info_uuid(), 2, EG_msg_arrived)) != 0)
 			{
 				EG_LOG_ERROR("Unable to subscribe topic2.\r\n");
-				
 				//EG_device_reboot(EG_DEVICE_OF_WIFI);
 				
 			}else{
 				EG_LOG_INFO("able to subscribe topic2.\r\n");
 			}
-			EG_thread_sleep(200);
+			
 		if ((rc = MQTTSubscribe(&opts->client, STR_WIFI_MODULE_FOTATOPIC, 2, EG_msg_arrived)) != 0)
 			{
 				EG_LOG_ERROR("Unable to subscribe topic3.\r\n");
-				
 				//EG_device_reboot(EG_DEVICE_OF_WIFI);
-				
 			}else{
 				EG_LOG_INFO("able to subscribe topic3.\r\n");
 			}
@@ -770,6 +766,7 @@ int EG_mqtt_stop()
 	//MQTTSendThread_thread = 0;
 	//EG_thread_delete(&MQTTReceiveThread_thread);
 	//MQTTReceiveThread_thread = 0;
+	
 
 	
 	MQTTClientDeinit(&opts->client);

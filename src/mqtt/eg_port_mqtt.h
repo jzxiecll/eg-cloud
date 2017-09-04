@@ -1,7 +1,7 @@
-#ifndef __EG_PORT_MQTT_H__
-#define __EG_PORT_MQTT_H__
+#ifndef __EJ_PORT_MQTT_H__
+#define __EJ_PORT_MQTT_H__
 
-
+//#include "eg_port_wlan.h"
 #include "eg_porting_layer.h"
 
 typedef struct Timer
@@ -31,7 +31,7 @@ struct Network
 };
 
 
-int NetworkConnect(Network *n, char *host,  int port);
+int NetworkConnect(Network *n, char *addr,  int port);
 
 void NewNetwork(Network* n);
 

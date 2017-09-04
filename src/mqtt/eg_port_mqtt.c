@@ -213,34 +213,12 @@ static void ej_mqtt_disconnect(Network* n)
 }
 
 
-int NetworkConnect(Network *n, char *host,  int port)
+int NetworkConnect(Network *n, char *addr,  int port)
 {
 #if 1
 
-		struct sockaddr_in addr;
-		n->my_socket = socket(AF_INET, SOCK_STREAM, 0);
 
-		if (n->my_socket < 0) {
-			return -EG_FAIL;
-		}
-		memset(&addr, 0, sizeof(struct sockaddr_in));
-		addr.sin_family = AF_INET;
-		addr.sin_port = htons(port);
-		addr.sin_addr.s_addr = inet_addr(host);
-		memset(&(addr.sin_zero), '\0', 8);
 
-		if (connect(n->my_socket, (const struct sockaddr *)&addr, sizeof(addr)) == 0) 
-		{
-			return EG_SUCCESS;
-			
-		}else
-		{
-			close(n->my_socket); 
-			n->my_socket = -1;
-			return -EG_FAIL;
-		}
-
-#if 0
     int type = SOCK_STREAM;
     struct sockaddr_in address;
     int rc = -1;
@@ -284,7 +262,6 @@ int NetworkConnect(Network *n, char *host,  int port)
 
     /* create client socket */
     if (rc == 0) {
-		int opval = 1;
         n->my_socket = socket(family, type, 0);
         if (n->my_socket < 0) {
             MQTT_DBG("mqtt socket create fail");
@@ -298,13 +275,11 @@ int NetworkConnect(Network *n, char *host,  int port)
             MQTT_DBG("mqtt socket connect fail:rc=%d,socket = %d", rc, n->my_socket);
             return -2;
         }
-		
-		//setsockopt(n->my_socket ,IPPROTO_TCP, TCP_NODELAY, &opval, sizeof(opval));
     }
 
     return rc;
 
-#endif
+
 
 
 
@@ -345,10 +320,10 @@ int NetworkConnect(Network *n, char *host,  int port)
 void NetworkDisconnect(Network* n)
 {
 
-	EG_LOG_INFO("enter NetworkDisconnect\r\n");
+	EG_P("enter NetworkDisconnect\r\n");
 	if(!n)
 	{
-		EG_LOG_INFO("NetworkDisconnect\r\n");
+		EG_P("NetworkDisconnect\r\n");
 		return;
 	}
 	shutdown(n->my_socket,SHUT_RDWR);
@@ -360,7 +335,7 @@ void NetworkDisconnect(Network* n)
 
 void NewNetwork(Network* n)
 {
-	n->my_socket = -1;
+	n->my_socket = 0;
 	n->mqttread = ej_mqtt_read;
 	n->mqttwrite = ej_mqtt_write;
 	n->disconnect = ej_mqtt_disconnect;
