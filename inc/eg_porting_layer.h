@@ -185,7 +185,8 @@ int EG_thread_create(eg_thread_t *thandle, const char *name,
 		  void *arg, eg_thread_stack_t *stack, int prio);
 void EG_thread_Suspend(eg_thread_t *thandle);
 int EG_thread_delete(eg_thread_t *thandle);
-void EJ_task_Resume(eg_thread_t xTaskToResume);
+void EJ_thread_resume(eg_thread_t *thandle);
+
 
 
 

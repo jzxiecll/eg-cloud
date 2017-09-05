@@ -320,10 +320,10 @@ int NetworkConnect(Network *n, char *addr,  int port)
 void NetworkDisconnect(Network* n)
 {
 
-	EG_P("enter NetworkDisconnect\r\n");
+	EG_DEBUG("Enter NetworkDisconnect\r\n");
 	if(!n)
 	{
-		EG_P("NetworkDisconnect\r\n");
+		EG_DEBUG("NetworkDisconnect\r\n");
 		return;
 	}
 	shutdown(n->my_socket,SHUT_RDWR);

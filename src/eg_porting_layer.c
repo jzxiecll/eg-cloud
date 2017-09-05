@@ -326,9 +326,13 @@ void EG_thread_self_complete(eg_thread_t *thandle)
 		//EG_thread_sleep(EG_msec_to_ticks(60000));
 }
 
-void EJ_task_Resume(eg_thread_t xTaskToResume)
+void EJ_thread_resume(eg_thread_t *thandle)
 {
- 	vTaskResume(xTaskToResume);
+ 	
+	if(thandle!=NULL)
+		vTaskResume(*thandle);
+	else
+		vTaskResume(NULL);
 }
 
 /*

@@ -22,7 +22,7 @@ static void UdpBroadcastTimerCB()
 	EG_timer_deactivate(&event_udpbroadcast_timer);
 	EG_udpbroadcast_stop();
 	eg_set_dev_info_wifistatus_udpbroadcastStatus(WIFIMODULE_UDPBROADCAST_RUNNED);	
-	EG_DEBUG("EG_udpbroadcast_stop ................................");
+	
 }
 
 static void eg_start_udpbroadcast_timer()
@@ -86,7 +86,7 @@ static void EJ_event_router_connected_process(void* data)
 		{
 			//eg_set_dev_info_wifistatus_cloudServiceStatus(CLOUD_MQTT_NOT_CONNECTED);
 			EG_send_event_sem(EJ_EVENT_routerConnectedSem);
-			EG_DEBUG("SEND NO2......");
+			//EG_DEBUG("SEND NO2......");
 			//EG_mqtt_stop();
 		}	
 	}
@@ -102,7 +102,7 @@ static void EJ_event_shouldMQTTThreadWorkProcess(void* data)
 		{		
 			eg_set_dev_info_wifistatus_cloudServiceStatus(CLOUD_MQTT_CONNECTED);			
 			EG_LOG_INFO("Connect egcloud server success.\r\n");
-			//EG_send_event_sem(EJ_EVENT_egTestSem);
+			EG_send_event_sem(EJ_EVENT_egTestSem);
 		}
 		else
 		{
@@ -118,9 +118,10 @@ static void EG_event_mqtt_connection_lost_process(void* data)
 	*Need to Do ...................................
 	*/
 	EG_LOG_INFO("receive an mqtt connection lost event1.\r\n");
-	//UnInit_MQTTThread();
-	EG_mqtt_stop();
 	eg_set_dev_info_wifistatus_cloudServiceStatus(CLOUD_MQTT_NOT_CONNECTED);
+	//UnInit_MQTTThread();
+	//EG_mqtt_stop();
+	
 	
 	//_g_pdevinfo->wifiStatus.cloudServiceStatus = CLOUD_NOT_CONNECTED;
 	//EG_LOG_INFO("receive an mqtt connection lost event2.\r\n");
@@ -128,11 +129,10 @@ static void EG_event_mqtt_connection_lost_process(void* data)
 
 static void EG_event_default_process()
 {
-	//WIFIMODULE_ROUTER_STATUS wlan_state = eg_get_dev_info_wifistatus_routerStatus();
-	unsigned  char  wlan_state = 0;
-	int ret = EG_wlan_get_connection_state(&wlan_state);
-	//EG_DEBUG("ret  = %d,wlan_state = %d\r\n",ret,wlan_state);
-	//int ret = 0;
+		//WIFIMODULE_ROUTER_STATUS wlan_state = eg_get_dev_info_wifistatus_routerStatus();
+	unsigned char wlan_state = 0;
+	int ret = -1;
+	ret = EG_wlan_get_connection_state(&wlan_state);
 	if(ret==0)
 	{
 		if(wlan_state == ROUTER_CONNECTED)
@@ -142,7 +142,7 @@ static void EG_event_default_process()
 			{	
 				eg_set_dev_info_wifistatus_cloudServiceStatus(CLOUD_MQTT_CONNECTTING);
 				EG_send_event_sem(EJ_EVENT_routerConnectedSem);
-				EG_DEBUG("SEND NO1......");
+				//EG_DEBUG("SEND NO1......");
 			}
 
 			if (eg_get_dev_info_wifistatus_udpbroadcastStatus()== WIFIMODULE_UDPBROADCAST_NOT_RUNNING) 
@@ -171,6 +171,7 @@ static void EG_event_default_process()
 
 		}
 	}
+
 
 }
 static void  EG_event_handler(eg_event_t event,void *data)
@@ -276,7 +277,7 @@ static void  EG_event_handler(eg_event_t event,void *data)
 				break;
 			}
 		case EJ_EVENT_udpBroadcastSem:
-			{
+			{	
 				EG_event_udpbroadcast_process(NULL);
 			}
 		default:
@@ -335,6 +336,7 @@ static void get_deviceid_timer_cb()
 	{
 		eg_set_dev_info_wifistatus_deviceIDRequestStatus(WIFIMODULE_DEVICEID_SUCCESS);
 		EG_timer_deactivate(&eg_timer_reply_deviceid);
+		
 	}	
 	return ret;
 		
@@ -390,7 +392,7 @@ void EG_start_event_machine1()
 	}
 	else 
 	{
-		EJ_task_Resume(eg_event_thread);
+		EJ_thread_resume(&eg_event_thread);
 	}
 	
 }
@@ -496,7 +498,7 @@ int EG_test_start()
 	}
 	else 
 	{
-		EJ_task_Resume(eg_test_thread);
+		EJ_thread_resume(&eg_test_thread);
 	}
 
 	
@@ -516,14 +518,6 @@ int EG_start(const char* uuid,const char* macaddr)
 		//EG_start_get_deviceid_timer();
 		EG_start_event_machine1();
 		//EG_start_event_machine();
-
-		//1.	check router status
-
-
-		//2. start machine reply did 
-
-
-		//3. 
 	}
 	
 	return ret;

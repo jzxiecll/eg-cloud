@@ -272,8 +272,11 @@ static int  EG_device_psm_init()
 
 
 
-int   EG_wlan_get_connection_state(unsigned char *state)
+int  EG_wlan_get_connection_state(unsigned char *state)
 {
+
+#if 1
+
 	if(state == NULL)
 			return -EG_E_INVAL;
 	unsigned char cur = 5 ;
@@ -297,7 +300,9 @@ int   EG_wlan_get_connection_state(unsigned char *state)
 				break;
 	}
 
-
+#else
+	*state  = 1;
+#endif
 	return EG_SUCCESS;
 
 }

@@ -74,6 +74,15 @@ unsigned char eg_list_pop(eg_list *list, void **data)
 	return ret;
 
 }
+int eg_list_clear(eg_list *list)  
+{  
+  	void *data;
+    while(eg_list_pop(list, &data))
+	{
+		EG_mem_free(data);
+	};
+    return 1;  
+}  
 
 eg_list * GetCloud2wifiList()
 {

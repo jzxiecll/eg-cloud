@@ -169,7 +169,7 @@ static int deliverMessage(Client* c, MQTTString* topicName, MQTTMessage* message
 {
   int i;
   int rc = FAILURE;
-
+#if 0
   // we have to find the right message handler - indexed by topic
   for (i = 0; i < MAX_MESSAGE_HANDLERS; ++i)
   {
@@ -193,8 +193,19 @@ static int deliverMessage(Client* c, MQTTString* topicName, MQTTMessage* message
       c->defaultMessageHandler(&md);
       rc = MQTT_SUCCESS;
   }   
-    
+
+#endif
+
+  if (c->messageHandlers[0].fp != NULL)
+  {
+	  MessageData md;
+	  NewMessageData(&md, topicName, message);
+	  c->messageHandlers[0].fp(&md);
+	  rc = MQTT_SUCCESS;
+  }
+
   return rc;
+
 }
 
 
@@ -219,12 +230,12 @@ static  int keepalive(Client* c)
 		  {
 		      countdown_ms(&c->pingresp_timer, c->command_timeout_ms);
 			  c->ping_outstanding = 1;
-		      EG_DEBUG("[MQTTClient.c][keepalive][INFO]: send ping request.\r\n");
+		      EG_DEBUG("send ping request.\r\n");
 		      rc = MQTT_SUCCESS;
 		  }
 		  else 
 		  {
-		    EG_DEBUG("[MQTTClient.c][keepalive][ERROR]: send ping failed.\r\n");
+		    EG_DEBUG("send ping failed.\r\n");
 		    rc = FAILURE;
 		  }	
       }
@@ -534,7 +545,7 @@ int MQTTPublish(Client* c, const char* topicName, MQTTMessage* message)
     goto exit;
   if ((rc = sendPacket(c, len, &timer)) != MQTT_SUCCESS) 
   {  // send the subscribe packet   
-    EG_DEBUG("[MQTTClient.c][MQTTPublish][ERROR]: sendPacket failed.\r\n");
+    EG_DEBUG("sendPacket failed.\r\n");
     goto exit; // there was a problem
   }
 
@@ -549,7 +560,7 @@ int MQTTPublish(Client* c, const char* topicName, MQTTMessage* message)
       }
       else 
 	  {
-			EG_DEBUG("[MQTTClient.c][MQTTPublish][ERROR]: wait for puback timeout.\r\n");
+			EG_DEBUG(" wait for puback timeout.\r\n");
 			rc = FAILURE;
       }
   }

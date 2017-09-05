@@ -143,7 +143,7 @@ typedef struct _attr_manage_{
 	Attr_t version;	
 }WIFIManage_t;
 
-#define EG_MAX_UUID_LEN  			6
+#define EG_MAX_UUID_LEN  			8
 #define EG_MAX_MAC_LEN  			20
 #define EG_MAX_SERVERADDR_LEN  		20
 #define EG_MAX_SERVERPORT_LEN  		6

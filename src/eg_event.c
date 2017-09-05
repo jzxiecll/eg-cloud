@@ -29,7 +29,7 @@ int  EG_send_event_sem(eg_event_t EventItem)
 	int ret = 0 ;
 	uint8_t msg = EventItem ; 
 	ret = EG_queue_send(egEventQueue, &msg, EG_msec_to_ticks(1));	
-	EG_DEBUG("EG_send_event_sem is %d ret=%d\r\n",msg,ret);		
+	EG_LOG_INFO("EG_send_event_sem is %d ret=%d\r\n",msg,ret);		
 	return  ret;	
 }
 

@@ -12,7 +12,8 @@ static eg_thread_t MQTTReceiveThread_thread = 0;
 static eg_thread_stack_define(MQTTReceiveThread_stack, 2048);
 
 opts_struct *opts = NULL;
-
+static int mqtt_thread_send_flag = 0;
+static int mqtt_thread_recv_flag = 0;
 
 uint8_t Process_RequestDeviceIDFromCloudResponseCB(EG_MSG_Packet *pPacket)
 {
@@ -219,7 +220,7 @@ static void EG_msg_queue_clear()
  {
  	 int i=0;
  	 int packetCount = EG_queue_get_msgs_waiting(EG_msg_queue_get(EG_CLOUD_MSG_OUT));
-	 EG_P("clear Device2cloudQueue Count :[%d]\r\n",packetCount);
+	 EG_DEBUG("Clear Device2cloudQueue Count :[%d]\r\n",packetCount);
  	 for(i = 0; i < packetCount; i++) 
  	 {	 
  		 EG_MSG_Packet *pDevice2CloudPacket = NULL;
@@ -343,7 +344,8 @@ void EG_msg_recv(void* arg)
 	}
 
 	EG_DEBUG("EG_msg_recv finish.....");
-	EG_thread_self_complete(NULL);
+	EG_mqtt_stop();
+	//EG_thread_self_complete(NULL);
 	//EG_thread_Suspend(&MQTTReceiveThread_thread);
 	
 
@@ -515,30 +517,31 @@ static uint8_t EG_connect_mqtt_server()
 		//EG_device_macaddr_get(TopicMac,len);
 		//EG_device_uuid_get(TopicUuid,len);
 		//EG_P("%s->uuid:%s,mac:%s\r\n",__FUNCTION__,TopicUuid,TopicMac);
-		if ((rc = MQTTSubscribe(&opts->client, (const char*)eg_get_dev_info_macaddr(), 2, EG_msg_arrived)) != 0)
-			{
-				EG_LOG_ERROR("Unable to subscribe topic1.\r\n");
-				//EG_device_reboot(EG_DEVICE_OF_WIFI);
-			}else{
-				EG_LOG_INFO("able to subscribe topic1.\r\n");
-			}
-			
-		if ((rc = MQTTSubscribe(&opts->client, (const char*)eg_get_dev_info_uuid(), 2, EG_msg_arrived)) != 0)
-			{
-				EG_LOG_ERROR("Unable to subscribe topic2.\r\n");
-				//EG_device_reboot(EG_DEVICE_OF_WIFI);
-				
-			}else{
-				EG_LOG_INFO("able to subscribe topic2.\r\n");
-			}
-			
-		if ((rc = MQTTSubscribe(&opts->client, STR_WIFI_MODULE_FOTATOPIC, 2, EG_msg_arrived)) != 0)
+			if ((rc = MQTTSubscribe(&opts->client, STR_WIFI_MODULE_FOTATOPIC, 2, EG_msg_arrived)) != 0)
 			{
 				EG_LOG_ERROR("Unable to subscribe topic3.\r\n");
 				//EG_device_reboot(EG_DEVICE_OF_WIFI);
 			}else{
-				EG_LOG_INFO("able to subscribe topic3.\r\n");
+				//EG_LOG_INFO("able to subscribe topic3.\r\n");
 			}
+		if ((rc = MQTTSubscribe(&opts->client, (const char*)eg_get_dev_info_macaddr(), 2, EG_msg_arrived)) != 0)
+			{
+				EG_LOG_ERROR("Unable to subscribe topic1. %s\r\n",eg_get_dev_info_macaddr());
+				//EG_device_reboot(EG_DEVICE_OF_WIFI);
+			}else{
+				//EG_LOG_INFO("able to subscribe topic1.\r\n");
+			}	
+		if ((rc = MQTTSubscribe(&opts->client, (const char*)eg_get_dev_info_uuid(), 2, EG_msg_arrived)) != 0)
+			{
+				EG_LOG_ERROR("Unable to subscribe topic2.%s\r\n",(const char*)eg_get_dev_info_uuid());
+				//EG_device_reboot(EG_DEVICE_OF_WIFI);
+				
+			}else{
+				//EG_LOG_INFO("able to subscribe topic2.\r\n");
+			}
+		
+			
+	
 #endif
 	return MQTT_CONNECTED_SUCCESS;
 }
@@ -642,37 +645,39 @@ int EG_mqtt_start()
 		return INIT_MQTT_CONNECTION_ERROR;
 	}
 	
-//	if (MQTTSendThread_thread == 0) 
-//	{
-		ret = EG_thread_create(&MQTTSendThread_thread,"MQTTSendThread",
-			(void *)EG_msg_send, 0,&MQTTSendThread_stack, EG_PRIO_3);
+	if (mqtt_thread_send_flag == 0) 
+	{
+			ret = EG_thread_create(&MQTTSendThread_thread,"MQTTSendThread",
+				(void *)EG_msg_send, 0,&MQTTSendThread_stack, EG_PRIO_3);
 
-		if (ret!=EG_SUCCESS) 
-		{
-			EG_LOG_ERROR(" Unable to create MQTTSendThread.\r\n");
-			return INIT_MQTT_OS_THREAD_CREATE_ERROR;
-		}
-//	}
-//	else 
-//	{
-//		EJ_task_Resume(MQTTSendThread_thread);
-//	}
+			if (ret!=EG_SUCCESS) 
+			{
+				EG_LOG_ERROR(" Unable to create MQTTSendThread.\r\n");
+				return INIT_MQTT_OS_THREAD_CREATE_ERROR;
+			}
+			mqtt_thread_send_flag = 1;
+	}
+	else 
+	{
+		EJ_thread_resume(&MQTTSendThread_thread);
+	}
 
-//	if (MQTTReceiveThread_thread == 0) 
-//	{
-		 ret = EG_thread_create(&MQTTSendThread_thread,"MQTTReceiveThread",
-			(void *)EG_msg_recv, 0,&MQTTReceiveThread_stack, EG_PRIO_3);
+	if (mqtt_thread_recv_flag == 0) 
+	{
+			 ret = EG_thread_create(&MQTTSendThread_thread,"MQTTReceiveThread",
+				(void *)EG_msg_recv, 0,&MQTTReceiveThread_stack, EG_PRIO_3);
 
-		if (ret!=EG_SUCCESS) 
-		{
-			EG_LOG_ERROR(" Unable to create MQTTRecvThread.\r\n");
-			return INIT_MQTT_OS_THREAD_CREATE_ERROR;
-		}
-	//}
-//	else 
-//	{
-//		EJ_task_Resume(MQTTReceiveThread_thread);
-//	}
+			if (ret!=EG_SUCCESS) 
+			{
+				EG_LOG_ERROR(" Unable to create MQTTRecvThread.\r\n");
+				return INIT_MQTT_OS_THREAD_CREATE_ERROR;
+			}
+			mqtt_thread_recv_flag = 1;
+	}
+	else 
+	{
+		EJ_thread_resume(&MQTTReceiveThread_thread);
+	}
 	
 	EG_LOG_INFO("EG_service_start success \r\n");
 	return INIT_MQTT_SUCCESS;
@@ -771,6 +776,12 @@ int EG_mqtt_stop()
 	
 	MQTTClientDeinit(&opts->client);
 	NetworkDisconnect(&opts->network);
+	
+	mqtt_thread_send_flag = 0;
+	mqtt_thread_recv_flag = 0;
+	EG_thread_delete(&MQTTSendThread_thread);
+	EG_thread_delete(&MQTTReceiveThread_thread);
+	
 	EG_DEBUG("mqtt service stop2...");
 	return 0;
 
