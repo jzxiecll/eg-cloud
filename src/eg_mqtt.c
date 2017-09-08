@@ -492,10 +492,14 @@ static uint8_t EG_connect_mqtt_server()
 
 	if ((rc = MQTTConnect(&opts->client, &connectData)) != 0) {
 		EG_LOG_ERROR("connnect MQTT server failed.\r\n");
+#if 0		
 		if (opts->network.my_socket) {
 			close(opts->network.my_socket);
 			opts->network.my_socket = -1;
 		}
+#else
+		NetworkDisconnect(&opts->network);
+#endif
 		//MQTTDisconnect(&opts->client);
 		MQTTClientDeinit(&opts->client);
 		return MQTT_CONNECTED_ERROR;
@@ -788,3 +792,12 @@ int EG_mqtt_stop()
 
 }
 
+void EG_mqtt_thread_delete()
+{
+	mqtt_thread_send_flag = 0;
+	mqtt_thread_recv_flag = 0;
+	if(MQTTSendThread_thread)
+	EG_thread_delete(&MQTTSendThread_thread);
+	if(MQTTSendThread_thread)
+	EG_thread_delete(&MQTTReceiveThread_thread);
+}

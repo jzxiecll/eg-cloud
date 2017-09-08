@@ -71,11 +71,13 @@ static void EJ_event_router_connected_process(void* data)
 {
 	eg_set_dev_info_wifistatus_routerStatus( ROUTER_CONNECTED);
 	
-	
+	int r_mqtt = 0;
 	/* if cloud services is not connected. */
 	if (eg_get_dev_info_wifistatus_cloudServiceStatus()== CLOUD_MQTT_CONNECTTING) 
 	{	
-		if (EG_mqtt_start() == INIT_MQTT_SUCCESS) 
+
+		r_mqtt = EG_mqtt_start() ;
+		if (r_mqtt== INIT_MQTT_SUCCESS) 
 		{		
 			eg_set_dev_info_wifistatus_cloudServiceStatus(CLOUD_MQTT_CONNECTED);			
 			EG_LOG_INFO("Connect egcloud server success.\r\n");
@@ -88,6 +90,8 @@ static void EJ_event_router_connected_process(void* data)
 			EG_send_event_sem(EJ_EVENT_routerConnectedSem);
 			//EG_DEBUG("SEND NO2......");
 			//EG_mqtt_stop();
+			if(r_mqtt == INIT_MQTT_OS_THREAD_CREATE_ERROR)
+				EG_mqtt_thread_delete();
 		}	
 	}
 }

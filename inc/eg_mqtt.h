@@ -57,6 +57,7 @@ int EG_mqtt_start();
 int EG_mqtt_stop();
 
 int EG_device_check_deviceid();
+void EG_mqtt_thread_delete();
 
 extern _g_pdevinfo;
 extern _g_pam;
