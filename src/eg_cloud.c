@@ -367,7 +367,9 @@ void EG_start_get_deviceid_timer()
 	
 }
 
-static eg_thread_t eg_event_thread=0;
+static eg_thread_t eg_event_thread=NULL;
+static eg_thread_stack_define(eg_event_thread_stack, 1024);
+
 static void EventProcessCB(void *data)
 {
 	eg_event_t event = 0;
@@ -385,12 +387,12 @@ void EG_start_event_machine1()
 
 	if (eg_event_thread == 0) 
 	{
-		int ret = EG_thread_create(&eg_event_thread,"EG_event_machine1_thread",
-			(void *)EventProcessCB, 0,&eg_test_thread_stack, EG_PRIO_3);
+		int ret = EG_thread_create(&eg_event_thread,"EG_Event_machine_thread",
+			(void *)EventProcessCB, 0,&eg_event_thread_stack, EG_PRIO_3);
 
 		if (ret!=EG_SUCCESS) 
 		{
-			EG_LOG_ERROR(" Unable to create MQTTSendThread.\r\n");
+			EG_LOG_ERROR(" Unable to create event_machine.\r\n");
 			return INIT_MQTT_OS_THREAD_CREATE_ERROR;
 		}
 	}
