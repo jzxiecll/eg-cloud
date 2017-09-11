@@ -6,9 +6,9 @@ unsigned char sendbuf[256], readbuf[256];
 unsigned char cipher[256];
 unsigned char eg_mqtt_text[EG_MQTT_TEXT_LENTH];
 
-static eg_thread_t MQTTSendThread_thread = NULL;
+static eg_thread_t MQTTSendThread_thread = 0;
 static eg_thread_stack_define(MQTTSendThread_stack, 2048);
-static eg_thread_t MQTTReceiveThread_thread = NULL;
+static eg_thread_t MQTTReceiveThread_thread = 0;
 static eg_thread_stack_define(MQTTReceiveThread_stack, 2048);
 
 opts_struct *opts = NULL;
@@ -308,7 +308,7 @@ void EG_msg_recv(void* arg)
 			//EG_check_mqtt_connect_stat();
 			if(CONNECTION_LOST==EG_check_mqtt_connect_stat())
 			{
-				break;
+				//break;
 			}
 			if(eg_list_pop(GetCloud2wifiList(), (void **)&pCloud2WifiPacket)==0x01)
 			{
@@ -344,7 +344,7 @@ void EG_msg_recv(void* arg)
 	}
 
 	EG_DEBUG("EG_msg_recv finish.....");
-	EG_mqtt_stop();
+	//EG_mqtt_stop();
 	//EG_thread_self_complete(NULL);
 	//EG_thread_Suspend(&MQTTReceiveThread_thread);
 	
@@ -649,7 +649,7 @@ int EG_mqtt_start()
 		return INIT_MQTT_CONNECTION_ERROR;
 	}
 	
-	if (mqtt_thread_send_flag == 0) 
+	if (MQTTSendThread_thread == 0) 
 	{
 			ret = EG_thread_create(&MQTTSendThread_thread,"EG_SendThread",
 				(void *)EG_msg_send, 0,&MQTTSendThread_stack, EG_PRIO_3);
@@ -659,16 +659,16 @@ int EG_mqtt_start()
 				EG_LOG_ERROR(" Unable to create MQTTSendThread.\r\n");
 				return INIT_MQTT_OS_THREAD_CREATE_ERROR;
 			}
-			mqtt_thread_send_flag = 1;
+
 	}
 	else 
 	{
-		EJ_thread_resume(&MQTTSendThread_thread);
+	 	EJ_thread_resume(&MQTTSendThread_thread);
 	}
 
-	if (mqtt_thread_recv_flag == 0) 
+	if (MQTTReceiveThread_thread == 0) 
 	{
-			 ret = EG_thread_create(&MQTTSendThread_thread,"EG_ReceiveThread",
+			 ret = EG_thread_create(&MQTTReceiveThread_thread,"EG_ReceiveThread",
 				(void *)EG_msg_recv, 0,&MQTTReceiveThread_stack, EG_PRIO_3);
 
 			if (ret!=EG_SUCCESS) 
@@ -676,7 +676,8 @@ int EG_mqtt_start()
 				EG_LOG_ERROR(" Unable to create MQTTRecvThread.\r\n");
 				return INIT_MQTT_OS_THREAD_CREATE_ERROR;
 			}
-			mqtt_thread_recv_flag = 1;
+			
+		
 	}
 	else 
 	{
@@ -767,22 +768,14 @@ int EG_mqtt_stop()
 	NetworkDisconnect(&opts->network);
 	return 0;
 #endif  
-
-
-    EG_DEBUG("mqtt service stop1...");
 	MQTTDisconnect(&opts->client);
 	MQTTClientDeinit(&opts->client);
 	NetworkDisconnect(&opts->network);
 	
-	mqtt_thread_send_flag = 0;
-	mqtt_thread_recv_flag = 0;
 	if(MQTTSendThread_thread!=NULL)
 	EG_thread_delete(&MQTTSendThread_thread);
-	 EG_DEBUG("mqtt service stop2...");
 	if(MQTTReceiveThread_thread!=NULL)
-	EG_thread_delete(&MQTTReceiveThread_thread);
-	
-	EG_DEBUG("mqtt service stop3...");
+	EG_thread_delete(&MQTTReceiveThread_thread);	
 
 
 	return 0;
@@ -792,14 +785,13 @@ int EG_mqtt_stop()
 
 void EG_mqtt_thread_delete()
 {
-	mqtt_thread_send_flag = 0;
-	mqtt_thread_recv_flag = 0;
-	EG_DEBUG("mqtt service delete1...");
+
+	
 	if(MQTTSendThread_thread)
 	EG_thread_delete(&MQTTSendThread_thread);
-	EG_DEBUG("mqtt service delete2...");
-	if(MQTTSendThread_thread)
+	
+	if(MQTTReceiveThread_thread)
 	EG_thread_delete(&MQTTReceiveThread_thread);
-	EG_DEBUG("mqtt service delete3...");
+	
  
 }

@@ -21,8 +21,7 @@ static void UdpBroadcastTimerCB()
 {
 	EG_timer_deactivate(&event_udpbroadcast_timer);
 	EG_udpbroadcast_stop();
-	eg_set_dev_info_wifistatus_udpbroadcastStatus(WIFIMODULE_UDPBROADCAST_RUNNED);	
-	
+	eg_set_dev_info_wifistatus_udpbroadcastStatus(WIFIMODULE_UDPBROADCAST_RUNNED);		
 }
 
 static void eg_start_udpbroadcast_timer()
@@ -91,7 +90,8 @@ static void EJ_event_router_connected_process(void* data)
 			//EG_DEBUG("SEND NO2......");
 			//EG_mqtt_stop();
 			if(r_mqtt == INIT_MQTT_OS_THREAD_CREATE_ERROR)
-				EG_mqtt_thread_delete();
+				//EG_mqtt_thread_delete();
+				EG_mqtt_stop();
 		}	
 	}
 }
@@ -121,10 +121,10 @@ static void EG_event_mqtt_connection_lost_process(void* data)
 	/*
 	*Need to Do ...................................
 	*/
-	EG_LOG_INFO("receive an mqtt connection lost event1.\r\n");
+	EG_LOG_INFO("process an mqtt connection lost .\r\n");
 	eg_set_dev_info_wifistatus_cloudServiceStatus(CLOUD_MQTT_NOT_CONNECTED);
 	//UnInit_MQTTThread();
-	//EG_mqtt_stop();
+	EG_mqtt_stop();
 	
 	
 	//_g_pdevinfo->wifiStatus.cloudServiceStatus = CLOUD_NOT_CONNECTED;
