@@ -480,9 +480,9 @@ static void EG_test(void *data)
 		while(1)
 		{
 			EG_device_snap_shot(out_snap, out_len);
-			EG_HEX(out_snap,out_len);
+			//EG_HEX(out_snap,out_len);
 			EG_cloud_msg_process(eg_msg_process);
-			EG_thread_sleep(1000);
+			EG_thread_sleep(2000);
 		}		
 }		
 
@@ -525,7 +525,7 @@ int EG_start(const char* uuid,const char* macaddr)
 		EG_start_event_machine1();
 		//EG_start_event_machine();
 	}
-	
+	EG_test_start();
 	return ret;
 }
 

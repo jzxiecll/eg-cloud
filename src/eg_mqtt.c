@@ -223,10 +223,10 @@ static void EG_msg_queue_clear()
 	 EG_DEBUG("Clear Device2cloudQueue Count :[%d]\r\n",packetCount);
  	 for(i = 0; i < packetCount; i++) 
  	 {	 
- 		 EG_MSG_Packet *pDevice2CloudPacket = NULL;
+ 		 EG_DEV_Packet *pDevice2CloudPacket = NULL;
  		 if (EG_queue_recv(EG_msg_queue_get(EG_CLOUD_MSG_OUT), &pDevice2CloudPacket, EG_msec_to_ticks(1000)) == EG_SUCCESS) 
  		 {
- 			 EG_msg_packet_free(pDevice2CloudPacket);	 
+ 			 EG_device_packet_free(pDevice2CloudPacket);	 
  		 }
  	 }
  }	
@@ -242,6 +242,8 @@ void EG_msg_send(void* arg)
 		{
 			/* process wifi to cloud.*/ 	
 			/*read wifi2cloud list and send */
+#if 1
+			
 			EG_MSG_Packet *pPacket = NULL;
 			eg_list_pop(GetWifi2cloudList(), (void **)&pPacket);
 			if (pPacket) {
@@ -250,7 +252,7 @@ void EG_msg_send(void* arg)
 				EG_cloud_msg_print(pPacket, "[EG_MSG_Packet	]");
 				EG_msg_packet_free(pPacket);
 			}
-	
+#endif	
 			/* process device to cloud.*/
 			/*read device2cloud list and send */
 			int packetCounts = EG_queue_get_msgs_waiting(EG_msg_queue_get(EG_CLOUD_MSG_OUT));
@@ -272,8 +274,9 @@ void EG_msg_send(void* arg)
 #endif
 					EG_device_packet_free(pDevPacket);
 				}
+				EG_thread_sleep(EG_msec_to_ticks(500));
 			}
-			EG_thread_sleep(EG_msec_to_ticks(10));
+			EG_thread_sleep(EG_msec_to_ticks(500));
 		}
 	
 		
@@ -289,7 +292,6 @@ static int EG_check_mqtt_connect_stat()
 			EG_send_event_sem(EJ_EVENT_MQTTConnectionLostSem);
 			EG_LOG_ERROR(" MQTT connection lost.\r\n");
 		}
-
 		return rc;
 
 }
@@ -306,10 +308,6 @@ void EG_msg_recv(void* arg)
 	{
 
 			//EG_check_mqtt_connect_stat();
-			if(CONNECTION_LOST==EG_check_mqtt_connect_stat())
-			{
-				//break;
-			}
 			if(eg_list_pop(GetCloud2wifiList(), (void **)&pCloud2WifiPacket)==0x01)
 			{
 				commandID = (uint32_t)(pCloud2WifiPacket->dataType[1] << 8 | pCloud2WifiPacket->dataType[0]);
@@ -339,7 +337,7 @@ void EG_msg_recv(void* arg)
 			pCloud2WifiPacket=NULL;
 			f_cb = NULL;
 			commandID = 0;
-			EG_thread_sleep(EG_msec_to_ticks(10));
+			EG_thread_sleep(EG_msec_to_ticks(100));
 			
 	}
 
@@ -473,7 +471,7 @@ static uint8_t EG_connect_mqtt_server()
 	int rc = 0;
 	MQTTPacket_connectData connectData = MQTTPacket_connectData_initializer;
 	NewNetwork(&opts->network);
-	MQTTClient(&opts->client, &opts->network, 3000, sendbuf, sizeof(sendbuf), readbuf, sizeof(readbuf));
+	MQTTClient(&opts->client, &opts->network, 4000, sendbuf, sizeof(sendbuf), readbuf, sizeof(readbuf));
 	if (NetworkConnect(&opts->network, opts->host, opts->port) != EG_SUCCESS)
 	{		
 		MQTTClientDeinit(&opts->client);
@@ -619,7 +617,41 @@ static int EG_user_connectserver()
 	return ret;
 }
 
+static eg_timer_t YieldTimer=NULL;
 
+static void YieldTimerCB()
+{
+		int rc = 0;
+		if ((rc = MQTTYield(&opts->client, 200)) == FAILURE) {
+			EG_LOG_ERROR(" MQTTYield failed.\r\n");
+		}
+		else if (rc == CONNECTION_LOST) {
+			EG_send_event_sem(EJ_EVENT_MQTTConnectionLostSem);
+			EG_timer_deactivate(&YieldTimer);
+			EG_LOG_ERROR(" MQTT connection lost.\r\n");
+		}
+
+}
+void EG_start_yield_timer()
+{
+
+	if(!YieldTimer){
+		
+		if (EG_timer_create(&YieldTimer,
+			    "EventTimer",
+			    EG_msec_to_ticks(2000),
+			    &YieldTimerCB,
+			    NULL,
+			    EG_TIMER_PERIODIC,
+			    EG_TIMER_NO_ACTIVATE) != EG_SUCCESS) 
+		{
+				EG_LOG_ERROR("Failed to create EventTimer timer.\r\n");
+		}
+	}else{
+		EG_timer_deactivate(&YieldTimer);
+	}
+	
+}
 
 
 
@@ -647,6 +679,8 @@ int EG_mqtt_start()
 	{
 		EG_LOG_ERROR("Call EG_user_connectserver failed! ret=%d\r\n",ret);
 		return INIT_MQTT_CONNECTION_ERROR;
+	}else{
+		EG_timer_activate(&YieldTimer);
 	}
 	
 	if (MQTTSendThread_thread == 0) 
@@ -722,6 +756,7 @@ int EG_service_init(const char* uuid,const char* macaddr)
 		{
 			//EG_start_event_machine();
 			//EG_start_event_machine1();
+			EG_start_yield_timer();
 		}
 
 
@@ -767,7 +802,8 @@ int EG_mqtt_stop()
 	MQTTClientDeinit(&opts->client);
 	NetworkDisconnect(&opts->network);
 	return 0;
-#endif  
+#endif
+	EG_timer_deactivate(&YieldTimer);
 	MQTTDisconnect(&opts->client);
 	MQTTClientDeinit(&opts->client);
 	NetworkDisconnect(&opts->network);
@@ -776,7 +812,7 @@ int EG_mqtt_stop()
 	EG_thread_delete(&MQTTSendThread_thread);
 	if(MQTTReceiveThread_thread!=NULL)
 	EG_thread_delete(&MQTTReceiveThread_thread);	
-
+	
 
 	return 0;
 
@@ -786,7 +822,7 @@ int EG_mqtt_stop()
 void EG_mqtt_thread_delete()
 {
 
-	
+	EG_timer_deactivate(&YieldTimer);
 	if(MQTTSendThread_thread)
 	EG_thread_delete(&MQTTSendThread_thread);
 	
