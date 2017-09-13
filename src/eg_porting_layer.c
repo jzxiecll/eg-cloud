@@ -355,7 +355,8 @@ static  int eg_recursive_mutex_create(eg_mutex_t *mhandle,
 
 static  int eg_recursive_mutex_get(eg_mutex_t *mhandle,
 					 unsigned long wait)
-{	
+{	if (!mhandle || !(*mhandle))
+		return -EG_E_INVAL;
 	int ret = xSemaphoreTakeRecursive(*mhandle, wait);
 	return ret == egTRUE ? EG_SUCCESS : -EG_FAIL;
 }
@@ -363,7 +364,8 @@ static  int eg_recursive_mutex_get(eg_mutex_t *mhandle,
 
 static  int eg_recursive_mutex_put(eg_mutex_t *mhandle)
 {
-	
+	if (!mhandle || !(*mhandle))
+		return -EG_E_INVAL;
 	int ret = xSemaphoreGiveRecursive(*mhandle);
 	return ret == egTRUE ? EG_SUCCESS : -EG_FAIL;
 }

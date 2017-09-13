@@ -102,10 +102,11 @@ int left_ms(Timer *timer)
     }
 }
 
-/*
+#if 0
 static int ej_mqtt_read(Network* n, unsigned char* buffer, int len, int tv)
 {
 	int bytes = 0;
+	EG_P("mqtt read.\r\n");
 	setsockopt(n->my_socket, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(int));
 	if (tv == 0) {
 		return bytes;
@@ -128,7 +129,7 @@ static int ej_mqtt_read(Network* n, unsigned char* buffer, int len, int tv)
 	return bytes;
 }
 
-*/
+#else
 static int ej_mqtt_read(Network* n, unsigned char* buffer, int len, int timeout_ms)
 
 {
@@ -168,15 +169,18 @@ static int ej_mqtt_read(Network* n, unsigned char* buffer, int len, int timeout_
     return recvlen;
 }
 
-/*
+#endif
+
+#if 0
 static int ej_mqtt_write(Network* n, unsigned char* buffer, int len, int tv)
 {
-	if (tv == 0) EJ_Printf("error1.\r\n");
+	if (tv == 0) EG_P("error1.\r\n");
+	EG_P("mqtt write.\r\n");
 	setsockopt(n->my_socket, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(int));
 	int	rc = send(n->my_socket, buffer, len, 0);
 	return rc;
 }
-*/
+#else
 	int ej_mqtt_write(Network *n, unsigned char *buffer, int len, int timeout_ms)
 	{
 		int rc = 0;
@@ -205,7 +209,7 @@ static int ej_mqtt_write(Network* n, unsigned char* buffer, int len, int tv)
 		return rc;
 	
 	}
-
+#endif
 
 static void ej_mqtt_disconnect(Network* n)
 {
@@ -287,31 +291,31 @@ int NetworkConnect(Network *n, char *addr,  int port)
 
 #else 
 
-	struct sockaddr_in addr;
+	struct sockaddr_in address;
 	n->my_socket = socket(AF_INET, SOCK_STREAM, 0);
 	if (n->my_socket < 0) {
-		EJ_ErrPrintf(("[wmsdk_port.c][ConnectNetwork][ERROR]:  create socket failed.\r\n"));		
-		return -EJ_FAIL;
+		EG_P("[wmsdk_port.c][ConnectNetwork][ERROR]:  create socket failed.\r\n");		
+		return -1;
 	}else{
-		EJ_ErrPrintf(("[wmsdk_port.c][ConnectNetwork][INFO]: create socket success.\r\n"));		
+		EG_P("[wmsdk_port.c][ConnectNetwork][INFO]: create socket success.\r\n");		
 	}	  
 
-	memset(&addr, 0, sizeof(struct sockaddr_in));
-	addr.sin_family = AF_INET;
-	addr.sin_port = htons(port);
-	addr.sin_addr.s_addr = inet_addr(host);
-	memset(&(addr.sin_zero), '\0', 8);
-	EJ_ErrPrintf(("[ConnectNettwork][port:%d][host:%s].\r\n",port,host));
-	if (connect(n->my_socket, (const struct sockaddr *)&addr, sizeof(addr)) != 0) 
+	memset(&address, 0, sizeof(struct sockaddr_in));
+	address.sin_family = AF_INET;
+	address.sin_port = htons(port);
+	address.sin_addr.s_addr = inet_addr(addr);
+	memset(&(address.sin_zero), '\0', 8);
+	EG_P("[ConnectNettwork][port:%d][host:%s].\r\n",port,addr);
+	if (connect(n->my_socket, (const struct sockaddr *)&address, sizeof(address)) != 0) 
 	{
-		EJ_ErrPrintf(("[ConnectNettwork][ERROR]: socket connect failed.\r\n"));
+		EG_P("[ConnectNettwork][ERROR]: socket connect failed.\r\n");
 		close(n->my_socket); 
-		n->my_socket = 0;
-		return -EJ_FAIL;
+		n->my_socket = -1;
+		return -1;
 	}else
 	{
-		EJ_ErrPrintf(("[ConnectNetwork][INFO]: socket connect success!\r\n"));
-		return EJ_SUCCESS;
+		EG_P("[ConnectNetwork][INFO]: socket connect success!\r\n");
+		return 0;
 	}
 
 
