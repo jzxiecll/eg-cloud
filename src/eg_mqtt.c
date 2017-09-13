@@ -686,7 +686,7 @@ int EG_mqtt_start()
 	if (MQTTSendThread_thread == 0) 
 	{
 			ret = EG_thread_create(&MQTTSendThread_thread,"EG_SendThread",
-				(void *)EG_msg_send, 0,&MQTTSendThread_stack, EG_PRIO_3);
+				(void *)EG_msg_send, 0,&MQTTSendThread_stack, EG_PRIO_0);
 
 			if (ret!=EG_SUCCESS) 
 			{
@@ -703,7 +703,7 @@ int EG_mqtt_start()
 	if (MQTTReceiveThread_thread == 0) 
 	{
 			 ret = EG_thread_create(&MQTTReceiveThread_thread,"EG_ReceiveThread",
-				(void *)EG_msg_recv, 0,&MQTTReceiveThread_stack, EG_PRIO_3);
+				(void *)EG_msg_recv, 0,&MQTTReceiveThread_stack, EG_PRIO_0);
 
 			if (ret!=EG_SUCCESS) 
 			{
@@ -803,17 +803,16 @@ int EG_mqtt_stop()
 	NetworkDisconnect(&opts->network);
 	return 0;
 #endif
+
 	EG_timer_deactivate(&YieldTimer);
 	MQTTDisconnect(&opts->client);
+	if(MQTTSendThread_thread!=NULL)
+		EG_thread_delete(&MQTTSendThread_thread);
+	if(MQTTReceiveThread_thread!=NULL)
+		EG_thread_delete(&MQTTReceiveThread_thread);
 	MQTTClientDeinit(&opts->client);
 	NetworkDisconnect(&opts->network);
 	
-	if(MQTTSendThread_thread!=NULL)
-	EG_thread_delete(&MQTTSendThread_thread);
-	if(MQTTReceiveThread_thread!=NULL)
-	EG_thread_delete(&MQTTReceiveThread_thread);	
-	
-
 	return 0;
 
 
@@ -824,10 +823,10 @@ void EG_mqtt_thread_delete()
 
 	EG_timer_deactivate(&YieldTimer);
 	if(MQTTSendThread_thread)
-	EG_thread_delete(&MQTTSendThread_thread);
+		EG_thread_delete(&MQTTSendThread_thread);
 	
 	if(MQTTReceiveThread_thread)
-	EG_thread_delete(&MQTTReceiveThread_thread);
+		EG_thread_delete(&MQTTReceiveThread_thread);
 	
  
 }

@@ -388,7 +388,7 @@ void EG_start_event_machine1()
 	if (eg_event_thread == 0) 
 	{
 		int ret = EG_thread_create(&eg_event_thread,"EG_Event_machine_thread",
-			(void *)EventProcessCB, 0,&eg_event_thread_stack, EG_PRIO_3);
+			(void *)EventProcessCB, 0,&eg_event_thread_stack, EG_PRIO_0);
 
 		if (ret!=EG_SUCCESS) 
 		{
@@ -494,7 +494,7 @@ int EG_test_start()
 	if (eg_test_thread == 0) 
 	{
 		int ret = EG_thread_create(&eg_test_thread,"EG_test_thread",
-			(void *)EG_test, 0,&eg_test_thread_stack, EG_PRIO_3);
+			(void *)EG_test, 0,&eg_test_thread_stack, EG_PRIO_0);
 
 		if (ret!=EG_SUCCESS) 
 		{

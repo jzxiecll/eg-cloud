@@ -209,6 +209,7 @@ static int ej_mqtt_write(Network* n, unsigned char* buffer, int len, int tv)
 
 static void ej_mqtt_disconnect(Network* n)
 {
+	shutdown(n->my_socket,SHUT_RDWR);
 	close(n->my_socket);
 }
 
@@ -272,6 +273,7 @@ int NetworkConnect(Network *n, char *addr,  int port)
 
         if (rc < 0) {
             close(n->my_socket);
+			n->my_socket = -1;
             MQTT_DBG("mqtt socket connect fail:rc=%d,socket = %d", rc, n->my_socket);
             return -2;
         }
@@ -326,16 +328,16 @@ void NetworkDisconnect(Network* n)
 		EG_DEBUG("NetworkDisconnect\r\n");
 		return;
 	}
-	shutdown(n->my_socket,SHUT_RDWR);
-	close(n->my_socket); 
-	n->my_socket = -1;	
-
-
+	if (n->my_socket != -1) {
+		shutdown(n->my_socket,SHUT_RDWR);
+		close(n->my_socket);
+		n->my_socket = -1;
+	}
 }
 
 void NewNetwork(Network* n)
 {
-	n->my_socket = 0;
+	n->my_socket = -1;
 	n->mqttread = ej_mqtt_read;
 	n->mqttwrite = ej_mqtt_write;
 	n->disconnect = ej_mqtt_disconnect;

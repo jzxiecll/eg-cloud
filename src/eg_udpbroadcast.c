@@ -248,7 +248,7 @@ int EG_udpbroadcast_start()
 	ret = EG_thread_create(&UDPBroadcastThread_thread,
 								"UDPBroadcastThread",
 								(void *)UDPBroadcastThread, 0,
-								&UDPBroadcastThread_stack, EG_PRIO_3);
+								&UDPBroadcastThread_stack, EG_PRIO_0);
 
 	if (ret!=0) {
 		EG_LOG_ERROR("Unable to create UDPBroadcastThread.\r\n");
