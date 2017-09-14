@@ -209,7 +209,8 @@ static int ej_mqtt_write(Network* n, unsigned char* buffer, int len, int tv)
 
 static void ej_mqtt_disconnect(Network* n)
 {
-	close(n->my_socket);
+	if(n->my_socket>=0)
+		close(n->my_socket);
 }
 
 
@@ -326,9 +327,13 @@ void NetworkDisconnect(Network* n)
 		EG_DEBUG("NetworkDisconnect\r\n");
 		return;
 	}
-	shutdown(n->my_socket,SHUT_RDWR);
-	close(n->my_socket); 
-	n->my_socket = -1;	
+	if(n->my_socket>=0)
+	{
+		shutdown(n->my_socket,SHUT_RDWR);
+		close(n->my_socket); 
+		n->my_socket = -1;
+	}
+		
 
 
 }

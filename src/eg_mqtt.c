@@ -812,8 +812,6 @@ int EG_mqtt_stop()
 	EG_thread_delete(&MQTTSendThread_thread);
 	if(MQTTReceiveThread_thread!=NULL)
 	EG_thread_delete(&MQTTReceiveThread_thread);	
-	
-
 	return 0;
 
 

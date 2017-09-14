@@ -306,14 +306,13 @@ static int cycle(Client* c, Timer* timer)
       break;
     case PINGRESP:
       c->ping_outstanding = 0;
-	  // countdown_ms(&c->ping_timer, c->keepAliveInterval*1000);
+	  countdown_ms(&c->ping_timer, c->keepAliveInterval*1000);
       break;
   }
   
   int kret = keepalive(c);
- // if (c->ping_outstanding && expired(&c->pingresp_timer)||(kret == -1))
-
-  if (c->ping_outstanding && expired(&c->pingresp_timer))
+  if (c->ping_outstanding && expired(&c->pingresp_timer)||(kret == -1))
+  // if (c->ping_outstanding && expired(&c->pingresp_timer))
   {
       //c->ping_outstanding = 0;
 	  c->ping_outstanding = 0;

@@ -312,7 +312,7 @@ int  EG_wlan_get_connection_state(unsigned char *state)
 
 static  void  eg_wifi_reboot()
 {
-#ifdef HAL_CACHE_MODULE_ENABLED
+#if 0
 	hal_cache_disable();
 	hal_cache_deinit();
 #endif
