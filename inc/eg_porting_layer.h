@@ -46,6 +46,7 @@ extern "C" {
 #include "hal.h"
 #include "hal_sys.h"
 #include "hal_rtc.h"
+#include "hal_cache.h"
 
 
 

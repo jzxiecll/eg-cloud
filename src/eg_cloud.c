@@ -525,7 +525,7 @@ int EG_start(const char* uuid,const char* macaddr)
 		EG_start_event_machine1();
 		//EG_start_event_machine();
 	}
-	EG_test_start();
+	//EG_test_start();
 	return ret;
 }
 

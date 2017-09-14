@@ -312,9 +312,10 @@ int  EG_wlan_get_connection_state(unsigned char *state)
 
 static  void  eg_wifi_reboot()
 {
-
+#ifdef HAL_CACHE_MODULE_ENABLED
 	hal_cache_disable();
 	hal_cache_deinit();
+#endif
 	hal_sys_reboot(HAL_SYS_REBOOT_MAGIC, WHOLE_SYSTEM_REBOOT_COMMAND);
 
 }
@@ -696,9 +697,14 @@ void eg_set_dev_info_wifistatus_udpbroadcastStatus(WIFIMODULE_UDPBROADCAST_STATU
 }
 void EG_device_init(const char* uuid,const char* macaddr)
 {
-
+#if 0
 	EG_device_psm_init();
 	EG_device_get_info(&_g_devinfo);
+#else
+	//wait for supplicant init complete
+	EG_thread_sleep(50);
+	memset((unsigned char*)_g_pdevinfo,0,sizeof(DeviceInfo_t));
+#endif
 	//1.init  hardware
 	memcpy(_g_pdevinfo->uuid, uuid, strlen(uuid));
 	memcpy(_g_pdevinfo->macaddr, macaddr, strlen(macaddr));
