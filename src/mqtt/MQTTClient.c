@@ -350,7 +350,6 @@ int MQTTYield(Client* c, int timeout_ms)
   do
 	{
 	    platform_mutex_lock(&c->mutex);
-
 	    rc = cycle(c, &timer);
 		printf(" MQTTYield log rc = %d.\r\n",rc);
 	    platform_mutex_unlock(&c->mutex);

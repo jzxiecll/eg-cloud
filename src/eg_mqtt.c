@@ -482,8 +482,8 @@ static uint8_t EG_connect_mqtt_server()
 	MQTTPacket_connectData connectData = MQTTPacket_connectData_initializer;
 	NewNetwork(&opts->network);
 	MQTTClient(&opts->client, &opts->network, 4000, sendbuf, sizeof(sendbuf), readbuf, sizeof(readbuf));
-	//if (NetworkConnect(&opts->network, opts->host, opts->port) != EG_SUCCESS)
-	if (platform_network_connect(&opts->network, opts->host, opts->port) != EG_SUCCESS)
+	if (NetworkConnect(&opts->network, opts->host, opts->port) != EG_SUCCESS)
+	//if (platform_network_connect(&opts->network, opts->host, opts->port) != EG_SUCCESS)
 	{		
 		MQTTClientDeinit(&opts->client);
 		return MQTT_CREATE_SOCKET_ERROR;

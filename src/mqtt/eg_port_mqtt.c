@@ -78,6 +78,10 @@ void countdown_ms(Timer *timer, unsigned int timeout)
 {
     timer->end_time = mqtt_current_time_ms() + timeout;
 }
+void countdown(Timer *timer, unsigned int timeout)
+{
+    timer->end_time = mqtt_current_time_ms() + (timeout * 1000);
+}
 
 /*
 int left_ms(Timer* t)
@@ -178,40 +182,48 @@ static int ej_mqtt_write(Network* n, unsigned char* buffer, int len, int tv)
 	return rc;
 }
 */
-	int ej_mqtt_write(Network *n, unsigned char *buffer, int len, int timeout_ms)
-	{
-		int rc = 0;
-		int ret = -1;
-		fd_set fdset;
-		struct timeval tv;
-	
-		FD_ZERO(&fdset);
-		FD_SET(n->my_socket, &fdset);
-	
-	
-		tv.tv_sec = timeout_ms / 1000;
-		tv.tv_usec = (timeout_ms % 1000) * 1000;
-		MQTT_DBG("mqtt write timer=%d ms", timeout_ms);
-		ret = select(n->my_socket + 1, NULL, &fdset, NULL, &tv);
-	
-		if (ret < 0) {
-			MQTT_DBG("mqtt write fail");
-			return -1;
-		} else if (ret == 0) {
-			MQTT_DBG("mqtt write timeout");
-			return -2;
-		} else if (ret == 1) {
-			rc = write(n->my_socket, buffer, len);
-		}
-		return rc;
-	
+int ej_mqtt_write(Network *n, unsigned char *buffer, int len, int timeout_ms)
+{
+	int rc = 0;
+	int ret = -1;
+	fd_set fdset;
+	struct timeval tv;
+
+	FD_ZERO(&fdset);
+	FD_SET(n->my_socket, &fdset);
+
+
+	tv.tv_sec = timeout_ms / 1000;
+	tv.tv_usec = (timeout_ms % 1000) * 1000;
+	MQTT_DBG("mqtt write timer=%d ms", timeout_ms);
+	ret = select(n->my_socket + 1, NULL, &fdset, NULL, &tv);
+
+	if (ret < 0) {
+		MQTT_DBG("mqtt write fail");
+		return -1;
+	} else if (ret == 0) {
+		MQTT_DBG("mqtt write timeout");
+		return -2;
+	} else if (ret == 1) {
+		rc = write(n->my_socket, buffer, len);
 	}
+	return rc;
+
+}
 
 
 static void ej_mqtt_disconnect(Network* n)
 {
-	if(n->my_socket>=0)
-		close(n->my_socket);
+	if (!n)
+    {
+        //platform_printf("%s: invalid network\n", __func__);
+        return;
+    }
+
+    //if (n->tls_enabled && n->tls_handle) tls_close(&n->tls_handle); 
+    shutdown(n->my_socket, SHUT_RDWR);
+	close(n->my_socket);
+   
 }
 
 
@@ -240,11 +252,10 @@ int NetworkConnect(Network *n, char *addr,  int port)
         }
 
         if (result->ai_family == AF_INET) {
-            //address.sin_port = htons(atoi(port));
             address.sin_port = htons(port);
             address.sin_family = family = AF_INET;
             address.sin_addr = ((struct sockaddr_in *)(result->ai_addr))->sin_addr;
-#if 1
+#if MT76XX_MQTT_DEBUG
             int a = 0, b = 0, c = 0, d = 0;
             unsigned int temp = 0;
 
@@ -260,12 +271,29 @@ int NetworkConnect(Network *n, char *addr,  int port)
         }
         freeaddrinfo(result);
     }
+#if 0
+    int ret;
+    struct sockaddr_in addr_s;
+
+    memset(&addr_s, 0, sizeof(addr_s));
+    addr_s.sin_len = sizeof(addr_s);
+    addr_s.sin_family = AF_INET;
+    addr_s.sin_port = PP_HTONS(atoi(port));
+    addr_s.sin_addr.s_addr = inet_addr(addr);
 
     /* create client socket */
+    n->my_socket = socket(AF_INET, SOCK_STREAM, 0);
+    if (n->my_socket < 0) {
+        MQTT_DBG("mqtt client create fail\n");
+        return -1;
+    }
+#endif
+    /* create client socket */
     if (rc == 0) {
+        int opval = 1;
         n->my_socket = socket(family, type, 0);
         if (n->my_socket < 0) {
-            MQTT_DBG("mqtt socket create fail");
+            printf("mqtt socket create fail");
             return -1;
         }
         /* connect remote servers*/
@@ -273,9 +301,11 @@ int NetworkConnect(Network *n, char *addr,  int port)
 
         if (rc < 0) {
             close(n->my_socket);
-            MQTT_DBG("mqtt socket connect fail:rc=%d,socket = %d", rc, n->my_socket);
+            printf("mqtt socket connect fail:rc=%d,socket = %d", rc, n->my_socket);
             return -2;
         }
+        
+        setsockopt(n->my_socket ,IPPROTO_TCP, TCP_NODELAY, &opval, sizeof(opval));
     }
 
     return rc;
@@ -339,7 +369,7 @@ void NetworkDisconnect(Network* n)
 
 void NewNetwork(Network* n)
 {
-#if 0	
+#if 1	
 	n->my_socket = 0;
 	n->mqttread = ej_mqtt_read;
 	n->mqttwrite = ej_mqtt_write;
