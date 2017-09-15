@@ -1,4 +1,5 @@
 #include "eg_port_mqtt.h"
+#include "marvell.h"
 /*void InitTimer(Timer* t)
 {
     if (!t)
@@ -219,7 +220,6 @@ int NetworkConnect(Network *n, char *addr,  int port)
 #if 1
 
 
-
     int type = SOCK_STREAM;
     struct sockaddr_in address;
     int rc = -1;
@@ -285,7 +285,6 @@ int NetworkConnect(Network *n, char *addr,  int port)
 
 
 #else 
-
 	struct sockaddr_in addr;
 	n->my_socket = socket(AF_INET, SOCK_STREAM, 0);
 	if (n->my_socket < 0) {
@@ -327,7 +326,7 @@ void NetworkDisconnect(Network* n)
 		EG_DEBUG("NetworkDisconnect\r\n");
 		return;
 	}
-	if(n->my_socket>=0)
+	if(n->my_socket>0)
 	{
 		shutdown(n->my_socket,SHUT_RDWR);
 		close(n->my_socket); 
@@ -340,9 +339,17 @@ void NetworkDisconnect(Network* n)
 
 void NewNetwork(Network* n)
 {
+#if 0	
 	n->my_socket = 0;
 	n->mqttread = ej_mqtt_read;
 	n->mqttwrite = ej_mqtt_write;
 	n->disconnect = ej_mqtt_disconnect;
+#else
+	platform_network_init(n);
+	n->mqttread = platform_network_read;
+	n->mqttwrite = platform_network_write;
+	n->disconnect = platform_network_disconnect;
+
+#endif
 }
 
