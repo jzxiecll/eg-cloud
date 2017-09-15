@@ -20,9 +20,18 @@
 #include "MQTTPacket.h"
 #include "stdio.h"
 #include "eg_port_mqtt.h" //Platform specific implementation header file
+#include "marvell.h"
 
 #define MAX_PACKET_ID 65535
 #define MAX_MESSAGE_HANDLERS 5
+
+
+enum mqttreturnCode 
+{ 
+    MQTT_CONNECTION_LOST = -3, 
+    MQTT_BUFFER_OVERFLOW = -2, 
+    MQTT_FAILURE = -1
+};
 
 enum QoS { QOS0, QOS1, QOS2 };
 

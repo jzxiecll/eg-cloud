@@ -11,6 +11,8 @@ static eg_thread_stack_define(MQTTSendThread_stack, 2048);
 static eg_thread_t MQTTReceiveThread_thread = 0;
 static eg_thread_stack_define(MQTTReceiveThread_stack, 2048);
 
+static eg_timer_t YieldTimer=NULL;
+
 opts_struct *opts = NULL;
 static int mqtt_thread_send_flag = 0;
 static int mqtt_thread_recv_flag = 0;
@@ -93,11 +95,19 @@ static void EG_PublishMQTTMessage(char *topicName, int qos, int retained, void *
 	message.retained = retained;
 	message.payload = payload;
 	message.payloadlen = dataLen;
-
-	if ((rc = MQTTPublish(&opts->client, topicName, &message)) != 0)
+	rc = MQTTPublish(&opts->client, topicName, &message);
+	if (rc == -1||rc == -2)
 	{
 		EG_LOG_ERROR(" Unable to publish topic.\r\n");
 	}
+	if(rc == -3)
+	{
+		EG_send_event_sem(EJ_EVENT_MQTTConnectionLostSem);
+		EG_timer_deactivate(&YieldTimer);
+		EG_LOG_ERROR(" MQTT connection lost.\r\n");
+	}
+	if(rc ==0)
+		EG_DEBUG("publish topic success.\r\n");
 
 }
 
@@ -522,6 +532,12 @@ static uint8_t EG_connect_mqtt_server()
 			if ((rc = MQTTSubscribe(&opts->client, STR_WIFI_MODULE_FOTATOPIC, 2, EG_msg_arrived)) != 0)
 			{
 				EG_LOG_ERROR("Unable to subscribe topic3.\r\n");
+				if(rc == -3)
+				{
+					EG_send_event_sem(EJ_EVENT_MQTTConnectionLostSem);
+					EG_timer_deactivate(&YieldTimer);
+					EG_LOG_ERROR(" MQTT connection lost.\r\n");
+				}
 				//EG_device_reboot(EG_DEVICE_OF_WIFI);
 			}else{
 				//EG_LOG_INFO("able to subscribe topic3.\r\n");
@@ -530,6 +546,12 @@ static uint8_t EG_connect_mqtt_server()
 			{
 				EG_LOG_ERROR("Unable to subscribe topic1. %s\r\n",eg_get_dev_info_macaddr());
 				//EG_device_reboot(EG_DEVICE_OF_WIFI);
+				if(rc == -3)
+				{
+					EG_send_event_sem(EJ_EVENT_MQTTConnectionLostSem);
+					EG_timer_deactivate(&YieldTimer);
+					EG_LOG_ERROR(" MQTT connection lost.\r\n");
+				}
 			}else{
 				//EG_LOG_INFO("able to subscribe topic1.\r\n");
 			}	
@@ -537,7 +559,12 @@ static uint8_t EG_connect_mqtt_server()
 			{
 				EG_LOG_ERROR("Unable to subscribe topic2.%s\r\n",(const char*)eg_get_dev_info_uuid());
 				//EG_device_reboot(EG_DEVICE_OF_WIFI);
-				
+				if(rc == -3)
+				{
+					EG_send_event_sem(EJ_EVENT_MQTTConnectionLostSem);
+					EG_timer_deactivate(&YieldTimer);
+					EG_LOG_ERROR(" MQTT connection lost.\r\n");
+				}
 			}else{
 				//EG_LOG_INFO("able to subscribe topic2.\r\n");
 			}
@@ -617,12 +644,12 @@ static int EG_user_connectserver()
 	return ret;
 }
 
-static eg_timer_t YieldTimer=NULL;
+
 
 static void YieldTimerCB()
 {
 		int rc = 0;
-		if ((rc = MQTTYield(&opts->client, 200)) == FAILURE) {
+		if ((rc = MQTTYield(&opts->client, 1000)) == FAILURE) {
 			EG_LOG_ERROR(" MQTTYield failed.\r\n");
 		}
 		else if (rc == CONNECTION_LOST) {

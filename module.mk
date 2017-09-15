@@ -14,6 +14,7 @@ C_FILES  += 	$(EGLINK_SRC)/src/eg_hardware.c
 C_FILES  += 	$(EGLINK_SRC)/src/eg_event.c
 C_FILES  += 	$(EGLINK_SRC)/src/eg_udpbroadcast.c
 
+C_FILES      += $(EGLINK_SRC)/src/marvell.c
 C_FILES      += $(EGLINK_SRC)/src/mqtt/eg_port_mqtt.c
 C_FILES      += $(EGLINK_SRC)/src/mqtt/MQTTClient.c
 C_FILES      += $(EGLINK_SRC)/src/mqtt/MQTTConnectClient.c
