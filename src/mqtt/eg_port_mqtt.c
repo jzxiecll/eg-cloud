@@ -369,7 +369,7 @@ void NetworkDisconnect(Network* n)
 
 void NewNetwork(Network* n)
 {
-#if 1	
+#if 0	
 	n->my_socket = 0;
 	n->mqttread = ej_mqtt_read;
 	n->mqttwrite = ej_mqtt_write;

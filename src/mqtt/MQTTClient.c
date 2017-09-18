@@ -117,8 +117,12 @@ static int readPacket(Client* c, Timer* timer)
   /* 1. read the header byte.  This has the packet type in it */
   int read_bytes = c->ipstack->mqttread(c->ipstack, c->readbuf, 1, left_ms(timer));
   printf("read_bytes --->%d\r\n",read_bytes);
-  if ( read_bytes!= 1)
-    goto exit;
+  if (read_bytes != 1) 
+	{
+		if (read_bytes == 0) 
+			rc = MQTT_CONNECTION_LOST;
+	    goto exit;
+	}
   printf("readPacket2 --->\r\n");
 
   len = 1;
@@ -315,7 +319,7 @@ static int cycle(Client* c, Timer* timer)
       break;
     case PINGRESP:
       c->ping_outstanding = 0;
-	  //countdown_ms(&c->ping_timer, c->keepAliveInterval*1000);
+	  countdown_ms(&c->ping_timer, c->keepAliveInterval*1000);
       break;
   }
   
@@ -338,7 +342,7 @@ static int cycle(Client* c, Timer* timer)
 
 int MQTTYield(Client* c, int timeout_ms)
 {
-  int rc = MQTT_SUCCESS;
+  volatile int rc = MQTT_SUCCESS;
   Timer timer;
 
   InitTimer(&timer);    
