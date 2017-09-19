@@ -145,7 +145,11 @@ static int ej_mqtt_read(Network* n, unsigned char* buffer, int len, int timeout_
 
     FD_ZERO(&fdset);
     FD_SET(n->my_socket, &fdset);
-
+	if (!n)
+    {
+        platform_printf("%s: invalid network\n", __func__);
+        return -1;
+    }
 
     tv.tv_sec = timeout_ms / 1000;
     tv.tv_usec = (timeout_ms % 1000) * 1000;
@@ -369,16 +373,16 @@ void NetworkDisconnect(Network* n)
 
 void NewNetwork(Network* n)
 {
-#if 0	
-	n->my_socket = 0;
-	n->mqttread = ej_mqtt_read;
-	n->mqttwrite = ej_mqtt_write;
-	n->disconnect = ej_mqtt_disconnect;
-#else
+#ifdef MQTT_MARVELL 	
 	platform_network_init(n);
 	n->mqttread = platform_network_read;
 	n->mqttwrite = platform_network_write;
 	n->disconnect = platform_network_disconnect;
+#else
+	n->my_socket = -1;
+	n->mqttread = ej_mqtt_read;
+	n->mqttwrite = ej_mqtt_write;
+	n->disconnect = ej_mqtt_disconnect;
 
 #endif
 }

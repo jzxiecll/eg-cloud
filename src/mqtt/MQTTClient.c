@@ -114,12 +114,19 @@ static int readPacket(Client* c, Timer* timer)
   int len = 0;
   int rem_len = 0;
   /* 1. read the header byte.  This has the packet type in it */
-  int read_bytes = c->ipstack->mqttread(c->ipstack, c->readbuf, 1, left_ms(timer));
-  if (read_bytes != 1) 
+  rc = c->ipstack->mqttread(c->ipstack, c->readbuf, 1, left_ms(timer));
+  if (rc != 1) 
   {
-		if (read_bytes == 0) 
+
+#ifdef MQTT_MARVELL 
+		if (rc == 0) 
+			rc = MQTT_CONNECTION_LOST;	    
+#else
+		if(rc == -3)
 			rc = MQTT_CONNECTION_LOST;
-	    goto exit;
+#endif
+ 		 goto exit;
+
   }
  
   len = 1;
@@ -342,17 +349,34 @@ static int cycle(Client* c, Timer* timer)
       c->ping_outstanding = 0;
       break;
   }
-  
-   if(keepalive(c)!= MQTT_SUCCESS)
+
+
+  int keepaliveRC = keepalive(c);
+   if(keepaliveRC != MQTT_SUCCESS)
    {
 		rc = MQTT_CONNECTION_LOST;
    }
   //if (c->ping_outstanding && expired(&c->pingresp_timer)||(kret == -1))
  
 
- exit:
+exit:
   if (rc == MQTT_SUCCESS)
-    rc = packet_type;
+  {
+  	
+#ifdef MQTT_MARVELL 
+		if (packet_type == -1) 
+			rc = keepaliveRC;	    
+#else
+		if(packet_type == -2)
+			rc = keepaliveRC;
+#endif
+		else{
+			rc = packet_type;
+		}
+  }
+   
+
+
  // else if(c->isconnected)
 	//MQTTCloseSession(c);
  
@@ -383,7 +407,8 @@ int MQTTYield(Client* c, int timeout_ms)
 	        break;
 
 	} while (!expired(&timer));
-        
+
+	printf(" MQTTYield log return rc = %d.\r\n",rc);
     return rc;
   
 }

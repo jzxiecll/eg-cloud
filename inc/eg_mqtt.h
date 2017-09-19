@@ -14,7 +14,7 @@ extern "C" {
 #include "eg_event.h"
 #include "MQTTClient.h"
 
-#define EJ_TEST_SERVER 1
+#define EJ_TEST_SERVER 0
 
 #define SERVER_ADDR_MASTER	"120.24.170.30"
 #define SERVER_ADDR_TEST	"120.77.76.24"

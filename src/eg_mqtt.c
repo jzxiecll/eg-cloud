@@ -481,9 +481,12 @@ static uint8_t EG_connect_mqtt_server()
 	int rc = 0;
 	MQTTPacket_connectData connectData = MQTTPacket_connectData_initializer;
 	NewNetwork(&opts->network);
-	MQTTClient(&opts->client, &opts->network, 4000, sendbuf, sizeof(sendbuf), readbuf, sizeof(readbuf));
-	//if (NetworkConnect(&opts->network, opts->host, opts->port) != EG_SUCCESS)
+	MQTTClient(&opts->client, &opts->network, 3000, sendbuf, sizeof(sendbuf), readbuf, sizeof(readbuf));
+#ifdef MQTT_MARVELL 
 	if (platform_network_connect(&opts->network, opts->host, opts->port) != EG_SUCCESS)
+#else	
+	if (NetworkConnect(&opts->network, opts->host, opts->port) != EG_SUCCESS)
+#endif
 	{		
 		MQTTClientDeinit(&opts->client);
 		return MQTT_CREATE_SOCKET_ERROR;
@@ -650,7 +653,7 @@ static int EG_user_connectserver()
 static void YieldTimerCB()
 {
 		int rc = 0;
-		if ((rc = MQTTYield(&opts->client, 5000)) == FAILURE) {
+		if ((rc = MQTTYield(&opts->client, 200)) == FAILURE) {
 			EG_LOG_ERROR(" MQTTYield failed.\r\n");
 		}
 		else if (rc == CONNECTION_LOST) {
@@ -667,7 +670,7 @@ void EG_start_yield_timer()
 		
 		if (EG_timer_create(&YieldTimer,
 			    "EventTimer",
-			    EG_msec_to_ticks(2000),
+			    EG_msec_to_ticks(10000),
 			    &YieldTimerCB,
 			    NULL,
 			    EG_TIMER_PERIODIC,
