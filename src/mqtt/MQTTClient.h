@@ -85,6 +85,7 @@ struct Client {
     unsigned int keepAliveInterval;
     char ping_outstanding;
     int isconnected;
+	int cleansession;
 
     struct MessageHandlers
     {
@@ -95,8 +96,7 @@ struct Client {
     void (*defaultMessageHandler) (MessageData*);
     
     Network* ipstack;
-    Timer ping_timer;
-    Timer pingresp_timer;
+    Timer ping_timer, pingresp_timer;
 	Mutex mutex;
 };
 

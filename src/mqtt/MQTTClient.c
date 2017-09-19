@@ -113,30 +113,33 @@ static int readPacket(Client* c, Timer* timer)
   MQTTHeader header = {0};
   int len = 0;
   int rem_len = 0;
-  printf("readPacket1 --->\r\n");
   /* 1. read the header byte.  This has the packet type in it */
   int read_bytes = c->ipstack->mqttread(c->ipstack, c->readbuf, 1, left_ms(timer));
-  printf("read_bytes --->%d\r\n",read_bytes);
   if (read_bytes != 1) 
-	{
+  {
 		if (read_bytes == 0) 
 			rc = MQTT_CONNECTION_LOST;
 	    goto exit;
-	}
-  printf("readPacket2 --->\r\n");
-
+  }
+ 
   len = 1;
   /* 2. read the remaining length.  This is variable in itself */
   decodePacket(c, &rem_len, left_ms(timer));
   len += MQTTPacket_encode(c->readbuf + 1, rem_len); /* put the original remaining length back into the buffer */
-
+  if (rem_len > (c->readbuf_size - len))
+	{
+	    rc = MQTT_BUFFER_OVERFLOW;
+	    goto exit;
+	}
   /* 3. read the rest of the buffer using a callback to supply the rest of the data */
   if (rem_len > 0 && (c->ipstack->mqttread(c->ipstack, c->readbuf + len, rem_len, left_ms(timer)) != rem_len))
     goto exit;
 
   header.byte = c->readbuf[0];
   rc = header.bits.type;
- exit:
+  if (c->keepAliveInterval > 0)
+        countdown_ms(&c->pingresp_timer, c->keepAliveInterval*1000); // record the fact that we have successfully received a packet
+exit:
   return rc;
 }
 
@@ -175,8 +178,8 @@ static char isTopicMatched(char* topicFilter, MQTTString* topicName)
 static int deliverMessage(Client* c, MQTTString* topicName, MQTTMessage* message)
 {
   int i;
-  int rc = FAILURE;
-#if 0
+  int rc = MQTT_FAILURE;
+#if 1
   // we have to find the right message handler - indexed by topic
   for (i = 0; i < MAX_MESSAGE_HANDLERS; ++i)
   {
@@ -193,7 +196,7 @@ static int deliverMessage(Client* c, MQTTString* topicName, MQTTMessage* message
         }
   }
     
-  if (rc == FAILURE && c->defaultMessageHandler != NULL) 
+  if (rc == MQTT_FAILURE && c->defaultMessageHandler != NULL) 
   {
       MessageData md;
       NewMessageData(&md, topicName, message);
@@ -201,7 +204,7 @@ static int deliverMessage(Client* c, MQTTString* topicName, MQTTMessage* message
       rc = MQTT_SUCCESS;
   }   
 
-#endif
+#else
 
   if (c->messageHandlers[0].fp != NULL)
   {
@@ -210,7 +213,7 @@ static int deliverMessage(Client* c, MQTTString* topicName, MQTTMessage* message
 	  c->messageHandlers[0].fp(&md);
 	  rc = MQTT_SUCCESS;
   }
-
+#endif
   return rc;
 
 }
@@ -219,15 +222,18 @@ static int deliverMessage(Client* c, MQTTString* topicName, MQTTMessage* message
 static  int keepalive(Client* c)
 {
   int rc = MQTT_SUCCESS;
+  
   if (c->keepAliveInterval == 0|| !c->isconnected)
   {
 	  rc = MQTT_SUCCESS;
 	  goto exit;
   }
-
-  if (expired(&c->ping_timer))
+ 
+  if (expired(&c->ping_timer)||expired(&c->pingresp_timer))
   {
-      if (!c->ping_outstanding)
+  	  if(c->ping_outstanding)
+	  	rc = MQTT_FAILURE;
+      else
       {
 		  Timer timer;
 		  InitTimer(&timer);
@@ -235,23 +241,35 @@ static  int keepalive(Client* c)
 		  int len = MQTTSerialize_pingreq(c->buf, c->buf_size);
 		  if (len > 0 && (rc = sendPacket(c, len, &timer)) == MQTT_SUCCESS) // send the ping packet
 		  {
-		      countdown_ms(&c->pingresp_timer, c->command_timeout_ms);
-			  c->ping_outstanding = 1;
-		      EG_DEBUG("send ping request.\r\n");
-		      rc = MQTT_SUCCESS;
+                //countdown_ms(&c->pingresp_timer, c->command_timeout_ms);
+                c->ping_outstanding = 1;
+                EG_DEBUG("sent ping request\n");
+          }else{
+				 EG_DEBUG("sent ping request failed\n");
 		  }
-		  if(len > 0 && rc != MQTT_SUCCESS)
-		  {
-		    EG_DEBUG("send ping failed.\r\n");
-		    rc = FAILURE;
-		  }	
+
+           
       }
       //c->ping_outstanding = 1;
-    }
+   }
 exit:
   return rc;
 }
 
+static void MQTTCleanSession(Client* c)
+{
+    int i = 0;
+
+    for (i = 0; i < MAX_MESSAGE_HANDLERS; ++i)
+        c->messageHandlers[i].topicFilter = NULL;
+}
+static void MQTTCloseSession(Client* c)
+{
+    c->ping_outstanding = 0;
+    c->isconnected = 0;
+    if (c->cleansession)
+        MQTTCleanSession(c);
+}
 
 static int cycle(Client* c, Timer* timer)
 {
@@ -268,6 +286,9 @@ static int cycle(Client* c, Timer* timer)
   printf("packet_type --->%d\r\n",packet_type);
   switch (packet_type)
   {
+  	
+    case 0: /* timed out reading packet */
+            break;
     case CONNACK:
     case PUBACK:
     case SUBACK:
@@ -319,22 +340,22 @@ static int cycle(Client* c, Timer* timer)
       break;
     case PINGRESP:
       c->ping_outstanding = 0;
-	  countdown_ms(&c->ping_timer, c->keepAliveInterval*1000);
       break;
   }
   
-   keepalive(c);
+   if(keepalive(c)!= MQTT_SUCCESS)
+   {
+		rc = MQTT_CONNECTION_LOST;
+   }
   //if (c->ping_outstanding && expired(&c->pingresp_timer)||(kret == -1))
-  if (c->ping_outstanding && expired(&c->pingresp_timer))
-  {
-      //c->ping_outstanding = 0;
-	  c->ping_outstanding = 0;
-      rc = MQTT_CONNECTION_LOST;
-  }
+ 
 
  exit:
   if (rc == MQTT_SUCCESS)
     rc = packet_type;
+ // else if(c->isconnected)
+	//MQTTCloseSession(c);
+ 
   return rc;
 }
 
@@ -378,10 +399,9 @@ static int waitfor(Client* c, int packet_type, Timer* timer)
     if (expired(timer)) 
 		break; // we timed out
 	rc = cycle(c, timer);
-    if (rc == MQTT_CONNECTION_LOST)
-        break;
+    
   }
-  while (rc!= packet_type);  
+  while (rc != packet_type && rc >= 0);  
     
   return rc;
 }
@@ -413,8 +433,6 @@ int MQTTConnect(Client* c, MQTTPacket_connectData* options)
     goto exit;
   if ((rc = sendPacket(c, len, &connect_timer)) != MQTT_SUCCESS)
   {// send the connect packet
-
-		 EG_DEBUG("========================sendPacket %d\r\n\r\n",left_ms(&connect_timer));
    		 goto exit; // there was a problem
   }
   // this will be a blocking call, wait for the connack
@@ -433,14 +451,55 @@ int MQTTConnect(Client* c, MQTTPacket_connectData* options)
    
     
  exit:
-  if (rc == MQTT_SUCCESS)
+  if (rc == MQTT_SUCCESS){
       c->isconnected = 1;
-
+ 	  c->ping_outstanding = 0;
+  }
   platform_mutex_unlock(&c->mutex);
 
   return rc;
 }
 
+int MQTTSetMessageHandler(Client* c, const char* topicFilter, messageHandler messageHandler)
+{
+    int rc = MQTT_FAILURE;
+    int i = -1;
+
+    /* first check for an existing matching slot */
+    for (i = 0; i < MAX_MESSAGE_HANDLERS; ++i)
+    {
+        if (c->messageHandlers[i].topicFilter != NULL && strcmp(c->messageHandlers[i].topicFilter, topicFilter) == 0)
+        {
+            if (messageHandler == NULL) /* remove existing */
+            {
+                c->messageHandlers[i].topicFilter = NULL;
+                c->messageHandlers[i].fp = NULL;
+            }
+            rc = MQTT_SUCCESS; /* return i when adding new subscription */
+            break;
+        }
+    }
+    /* if no existing, look for empty slot (unless we are removing) */
+    if (messageHandler != NULL) {
+        if (rc == FAILURE)
+        {
+            for (i = 0; i < MAX_MESSAGE_HANDLERS; ++i)
+            {
+                if (c->messageHandlers[i].topicFilter == NULL)
+                {
+                    rc = MQTT_SUCCESS;
+                    break;
+                }
+            }
+        }
+        if (i < MAX_MESSAGE_HANDLERS)
+        {
+            c->messageHandlers[i].topicFilter = topicFilter;
+            c->messageHandlers[i].fp = messageHandler;
+        }
+    }
+    return rc;
+}
 
 int MQTTSubscribe(Client* c, const char* topicFilter, enum QoS qos, messageHandler messageHandler)
 { 
@@ -466,27 +525,22 @@ int MQTTSubscribe(Client* c, const char* topicFilter, enum QoS qos, messageHandl
       int count = 0, grantedQoS = -1;
       unsigned short mypacketid;
       if (MQTTDeserialize_suback(&mypacketid, 1, &count, &grantedQoS, c->readbuf, c->readbuf_size) == 1)
-			rc = grantedQoS; // 0, 1, 2 or 0x80 
-	   if (rc != 0x80)
+      {
+		rc = grantedQoS; // 0, 1, 2 or 0x80 
+		if (rc != 0x80)
         {
-		  int i;
-		  for (i = 0; i < MAX_MESSAGE_HANDLERS; ++i)
-          {
-	      if (c->messageHandlers[i].topicFilter == 0)
-                {
-				  c->messageHandlers[i].topicFilter = topicFilter;
-				  c->messageHandlers[i].fp = messageHandler;
-				  rc = 0;
-				  break;
-                }
-         }
+		  rc = MQTTSetMessageHandler(c, topicFilter, messageHandler);
         }
+	  }
+			
+	   
   }
   else 
     rc = MQTT_CONNECTION_LOST;
         
  exit:
-
+  if (rc == MQTT_FAILURE||rc == MQTT_CONNECTION_LOST)
+        MQTTCloseSession(c);
   platform_mutex_unlock(&c->mutex);
   return rc;
 }
@@ -518,13 +572,19 @@ int MQTTUnsubscribe(Client* c, const char* topicFilter)
   {
       unsigned short mypacketid;  // should be the same as the packetid above
       if (MQTTDeserialize_unsuback(&mypacketid, c->readbuf, c->readbuf_size) == 1)
-		rc = 0; 
+	  	{
+	        /* remove the subscription message handler associated with this topic, if there is one */
+	        MQTTSetMessageHandler(c, topicFilter, NULL);
+			rc = 0; 
+	    }
+		
   }
   else
     	rc = FAILURE;
     
  exit:
-
+  if (rc == FAILURE||rc == MQTT_CONNECTION_LOST)
+        MQTTCloseSession(c);
   platform_mutex_unlock(&c->mutex);
   return rc;
 }
@@ -590,6 +650,8 @@ int MQTTPublish(Client* c, const char* topicName, MQTTMessage* message)
   }
     
  exit:
+	 if (rc == FAILURE||rc == MQTT_CONNECTION_LOST)
+			 MQTTCloseSession(c);
 
   platform_mutex_unlock(&c->mutex);
   return rc;
@@ -607,7 +669,7 @@ int MQTTDisconnect(Client* c)
   len = MQTTSerialize_disconnect(c->buf, c->buf_size);
   if (len > 0)
     rc = sendPacket(c, len, &timer);            // send the disconnect packet
-  c->isconnected = 0;
+  MQTTCloseSession(c);
 
   platform_mutex_unlock(&c->mutex);
 

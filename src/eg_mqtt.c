@@ -98,7 +98,7 @@ static void EG_PublishMQTTMessage(char *topicName, int qos, int retained, void *
 	rc = MQTTPublish(&opts->client, topicName, &message);
 	if (rc == -1||rc == -2)
 	{
-		EG_LOG_ERROR(" Unable to publish topic.\r\n");
+		EG_LOG_ERROR(" Unable to publish topic. rc = %d\r\n",rc);
 	}
 	if(rc == -3)
 	{
@@ -650,7 +650,7 @@ static int EG_user_connectserver()
 static void YieldTimerCB()
 {
 		int rc = 0;
-		if ((rc = MQTTYield(&opts->client, 1000)) == FAILURE) {
+		if ((rc = MQTTYield(&opts->client, 5000)) == FAILURE) {
 			EG_LOG_ERROR(" MQTTYield failed.\r\n");
 		}
 		else if (rc == CONNECTION_LOST) {
